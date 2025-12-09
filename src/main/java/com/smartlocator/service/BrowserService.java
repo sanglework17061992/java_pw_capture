@@ -357,12 +357,13 @@ public class BrowserService {
                 highlightBox.style.height = rect.height + 'px';
                 highlightBox.style.display = 'block';
                 
-                // Show element info
+                // Show element info below the element
                 let tagName = e.target.tagName.toLowerCase();
                 let idInfo = e.target.id ? '#' + e.target.id : '';
                 let classInfo = e.target.className ? '.' + e.target.className.split(' ').join('.') : '';
                 tooltip.textContent = tagName + idInfo + classInfo;
-                tooltip.style.top = (rect.top + window.scrollY - 35) + 'px';
+                // Position tooltip below the element
+                tooltip.style.top = (rect.bottom + window.scrollY + 5) + 'px';
                 tooltip.style.left = (rect.left + window.scrollX) + 'px';
                 tooltip.style.display = 'block';
               });
