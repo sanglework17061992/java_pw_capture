@@ -58,11 +58,12 @@ public class LocatorScoringService {
             .max(Comparator.comparing(LocatorCandidate::getScore))
             .ifPresent(c -> candidatesMap.put("CSS", c.getLocator()));
         
-        // 3. XPath locators (show multiple options - top 5)
+        // 3. XPath locators (show meaningful unique options - top 3)
         List<LocatorCandidate> xpathCandidates = candidates.stream()
             .filter(c -> c.getType().equals("xpath"))
             .sorted((a, b) -> Double.compare(b.getScore(), a.getScore()))
-            .limit(5)
+            .distinct() // Remove duplicates
+            .limit(3) // Only show top 3 meaningful XPath options
             .collect(Collectors.toList());
         
         for (int i = 0; i < xpathCandidates.size(); i++) {

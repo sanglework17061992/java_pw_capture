@@ -212,21 +212,23 @@ public class LocatorGenerationService {
                     .build());
         }
 
-        // XPath with class (individual classes)
+        // XPath with class (only first stable class)
         if (metadata.getClassList() != null && !metadata.getClassList().isEmpty()) {
-            // Try each class individually
-            for (String className : metadata.getClassList()) {
+            // Use only the first meaningful class
+            String firstClass = metadata.getClassList().get(0);
+            if (!firstClass.isEmpty()) {
                 candidates.add(LocatorCandidate.builder()
                         .type("xpath")
-                        .locator(String.format("//%s[contains(@class, '%s')]", tag, className))
+                        .locator(String.format("//%s[contains(@class, '%s')]", tag, firstClass))
                         .score(0)
-                        .reason("XPath with class contains")
+                        .reason("XPath with class")
                         .build());
             }
             
-            // Combined class XPath
+            // Combined class XPath (only if multiple meaningful classes)
             if (metadata.getClassList().size() > 1) {
                 String classConditions = metadata.getClassList().stream()
+                    .limit(2) // Only use first 2 classes
                     .map(c -> String.format("contains(@class, '%s')", c))
                     .collect(Collectors.joining(" and "));
                 candidates.add(LocatorCandidate.builder()
@@ -238,45 +240,30 @@ public class LocatorGenerationService {
             }
         }
 
-        // XPath with text content
+        // XPath with text content (only if text is meaningful)
         if (metadataService.hasMeaningfulText(metadata)) {
             String text = metadataService.normalizeText(metadata.getInnerText());
-            if (!text.isEmpty() && text.length() < 50) {
+            if (!text.isEmpty() && text.length() >= 3 && text.length() < 50) {
                 candidates.add(LocatorCandidate.builder()
                         .type("xpath")
                         .locator(String.format("//%s[text()='%s']", tag, text))
                         .score(0)
-                        .reason("XPath with exact text")
-                        .build());
-                
-                candidates.add(LocatorCandidate.builder()
-                        .type("xpath")
-                        .locator(String.format("//%s[contains(text(), '%s')]", tag, text))
-                        .score(0)
-                        .reason("XPath with text contains")
+                        .reason("XPath with text")
                         .build());
             }
         }
 
-        // XPath with position (fallback)
-        if (metadata.getNthIndex() > 0 && metadata.getParentTagName() != null) {
+        // XPath with position (only add if no other good options)
+        if (metadata.getNthIndex() > 0 && metadata.getParentTagName() != null && candidates.isEmpty()) {
             String xpath = String.format("//%s/%s[%d]", 
                     metadata.getParentTagName(), tag, metadata.getNthIndex());
             candidates.add(LocatorCandidate.builder()
                     .type("xpath")
                     .locator(xpath)
                     .score(0)
-                    .reason("XPath with position (fallback)")
+                    .reason("XPath with position")
                     .build());
         }
-        
-        // Simple tag xpath (lowest priority)
-        candidates.add(LocatorCandidate.builder()
-                .type("xpath")
-                .locator("//" + tag)
-                .score(0)
-                .reason("Simple tag XPath")
-                .build());
 
         return candidates;
     }
