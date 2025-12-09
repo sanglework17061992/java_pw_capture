@@ -7,6 +7,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @Slf4j
@@ -179,13 +180,23 @@ public class LocatorGenerationService {
         List<LocatorCandidate> candidates = new ArrayList<>();
         String tag = metadata.getTagName();
 
-        // Simple tag xpath
-        candidates.add(LocatorCandidate.builder()
-                .type("xpath")
-                .locator("//" + tag)
-                .score(0)
-                .reason("Simple tag XPath")
-                .build());
+        // XPath with ID (highest priority)
+        if (metadata.getId() != null && !metadata.getId().isEmpty()) {
+            candidates.add(LocatorCandidate.builder()
+                    .type("xpath")
+                    .locator(String.format("//%s[@id='%s']", tag, metadata.getId()))
+                    .score(0)
+                    .reason("XPath with ID")
+                    .build());
+            
+            // Alternative: ID-only XPath
+            candidates.add(LocatorCandidate.builder()
+                    .type("xpath")
+                    .locator(String.format("//*[@id='%s']", metadata.getId()))
+                    .score(0)
+                    .reason("XPath with ID (any tag)")
+                    .build());
+        }
 
         // XPath with stable attribute
         String stableAttr = metadataService.getMostStableAttribute(metadata);
@@ -201,15 +212,48 @@ public class LocatorGenerationService {
                     .build());
         }
 
-        // XPath with class
+        // XPath with class (individual classes)
         if (metadata.getClassList() != null && !metadata.getClassList().isEmpty()) {
+            // Try each class individually
             for (String className : metadata.getClassList()) {
-                String xpath = String.format("//%s[contains(@class, '%s')]", tag, className);
                 candidates.add(LocatorCandidate.builder()
                         .type("xpath")
-                        .locator(xpath)
+                        .locator(String.format("//%s[contains(@class, '%s')]", tag, className))
                         .score(0)
                         .reason("XPath with class contains")
+                        .build());
+            }
+            
+            // Combined class XPath
+            if (metadata.getClassList().size() > 1) {
+                String classConditions = metadata.getClassList().stream()
+                    .map(c -> String.format("contains(@class, '%s')", c))
+                    .collect(Collectors.joining(" and "));
+                candidates.add(LocatorCandidate.builder()
+                        .type("xpath")
+                        .locator(String.format("//%s[%s]", tag, classConditions))
+                        .score(0)
+                        .reason("XPath with multiple classes")
+                        .build());
+            }
+        }
+
+        // XPath with text content
+        if (metadataService.hasMeaningfulText(metadata)) {
+            String text = metadataService.normalizeText(metadata.getInnerText());
+            if (!text.isEmpty() && text.length() < 50) {
+                candidates.add(LocatorCandidate.builder()
+                        .type("xpath")
+                        .locator(String.format("//%s[text()='%s']", tag, text))
+                        .score(0)
+                        .reason("XPath with exact text")
+                        .build());
+                
+                candidates.add(LocatorCandidate.builder()
+                        .type("xpath")
+                        .locator(String.format("//%s[contains(text(), '%s')]", tag, text))
+                        .score(0)
+                        .reason("XPath with text contains")
                         .build());
             }
         }
@@ -225,6 +269,14 @@ public class LocatorGenerationService {
                     .reason("XPath with position (fallback)")
                     .build());
         }
+        
+        // Simple tag xpath (lowest priority)
+        candidates.add(LocatorCandidate.builder()
+                .type("xpath")
+                .locator("//" + tag)
+                .score(0)
+                .reason("Simple tag XPath")
+                .build());
 
         return candidates;
     }

@@ -43,14 +43,38 @@ public class LocatorScoringService {
         // Get best locator
         LocatorCandidate best = candidates.get(0);
 
-        // Build candidates map
-        Map<String, String> candidatesMap = new HashMap<>();
-        for (LocatorCandidate candidate : candidates) {
-            String key = candidate.getType();
-            if (!candidatesMap.containsKey(key) || candidate.getScore() > scoreLocator(candidatesMap.get(key))) {
-                candidatesMap.put(key, candidate.getLocator());
-            }
+        // Build candidates map with priority order and multiple XPath options
+        Map<String, String> candidatesMap = new LinkedHashMap<>();
+        
+        // 1. Priority: ID locator (if available)
+        candidates.stream()
+            .filter(c -> c.getType().equals("id"))
+            .max(Comparator.comparing(LocatorCandidate::getScore))
+            .ifPresent(c -> candidatesMap.put("ID", c.getLocator()));
+        
+        // 2. CSS locator (best one)
+        candidates.stream()
+            .filter(c -> c.getType().equals("css"))
+            .max(Comparator.comparing(LocatorCandidate::getScore))
+            .ifPresent(c -> candidatesMap.put("CSS", c.getLocator()));
+        
+        // 3. XPath locators (show multiple options - top 5)
+        List<LocatorCandidate> xpathCandidates = candidates.stream()
+            .filter(c -> c.getType().equals("xpath"))
+            .sorted((a, b) -> Double.compare(b.getScore(), a.getScore()))
+            .limit(5)
+            .collect(Collectors.toList());
+        
+        for (int i = 0; i < xpathCandidates.size(); i++) {
+            String key = xpathCandidates.size() > 1 ? "XPATH_" + (i + 1) : "XPATH";
+            candidatesMap.put(key, xpathCandidates.get(i).getLocator());
         }
+        
+        // 4. Playwright locator (best one)
+        candidates.stream()
+            .filter(c -> c.getType().equals("playwright"))
+            .max(Comparator.comparing(LocatorCandidate::getScore))
+            .ifPresent(c -> candidatesMap.put("PLAYWRIGHT", c.getLocator()));
 
         // Build reasons
         List<String> reasons = buildReasons(best, metadata);
