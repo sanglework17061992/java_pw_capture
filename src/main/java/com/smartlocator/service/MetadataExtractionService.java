@@ -57,7 +57,18 @@ public class MetadataExtractionService {
                attrName.equals("role") ||
                attrName.equals("name") ||
                attrName.equals("type") ||
-               attrName.equals("placeholder");
+               attrName.equals("placeholder") ||
+               // Angular specific
+               attrName.startsWith("ng-") ||
+               attrName.startsWith("[ng") ||
+               attrName.startsWith("data-ng-") ||
+               // React specific
+               attrName.startsWith("data-react") ||
+               attrName.startsWith("data-component") ||
+               // Vue specific
+               attrName.startsWith("v-") ||
+               attrName.startsWith("data-v-") ||
+               attrName.startsWith(":data-");
     }
 
     /**
@@ -71,7 +82,13 @@ public class MetadataExtractionService {
         // Priority order for stable attributes
         String[] priorityAttrs = {
             "data-test-id", "data-testid", "data-test", "data-qa", "data-cy",
-            "aria-label", "aria-labelledby", "role", "name", "type", "placeholder"
+            "aria-label", "aria-labelledby", "role", "name", "type", "placeholder",
+            // Angular framework attributes
+            "ng-model", "ng-bind", "ng-click", "ng-if", "data-ng-model",
+            // React framework attributes
+            "data-react-id", "data-component-name", "data-testid",
+            // Vue framework attributes
+            "v-model", "v-bind", "v-if", "data-v-"
         };
 
         for (String attr : priorityAttrs) {
@@ -83,6 +100,41 @@ public class MetadataExtractionService {
             }
         }
 
+        return null;
+    }
+    
+    /**
+     * Detect frontend framework from element attributes
+     */
+    public String detectFramework(ElementMetadata metadata) {
+        if (metadata.getAttributes() == null) {
+            return null;
+        }
+        
+        for (String attr : metadata.getAttributes().keySet()) {
+            // Angular detection
+            if (attr.startsWith("ng-") || attr.startsWith("[ng") || attr.startsWith("data-ng-")) {
+                return "Angular";
+            }
+            // Vue detection
+            if (attr.startsWith("v-") || attr.startsWith(":v-") || attr.startsWith("@") || attr.contains("data-v-")) {
+                return "Vue";
+            }
+            // React detection (harder to detect, usually based on class patterns)
+            if (attr.startsWith("data-react") || attr.equals("data-reactroot")) {
+                return "React";
+            }
+        }
+        
+        // Check class names for React patterns
+        if (metadata.getClassList() != null) {
+            for (String className : metadata.getClassList()) {
+                if (className.matches(".*[A-Z][a-z]+.*")) { // PascalCase indicates React
+                    return "React";
+                }
+            }
+        }
+        
         return null;
     }
 

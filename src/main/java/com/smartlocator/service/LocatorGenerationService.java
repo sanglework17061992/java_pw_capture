@@ -179,6 +179,9 @@ public class LocatorGenerationService {
     private List<LocatorCandidate> generateXPathLocators(ElementMetadata metadata) {
         List<LocatorCandidate> candidates = new ArrayList<>();
         String tag = metadata.getTagName();
+        
+        // Detect framework for better XPath generation
+        String framework = metadataService.detectFramework(metadata);
 
         // XPath with ID (highest priority)
         if (metadata.getId() != null && !metadata.getId().isEmpty()) {
@@ -197,6 +200,11 @@ public class LocatorGenerationService {
                     .reason("XPath with ID (any tag)")
                     .build());
         }
+        
+        // Framework-specific XPath locators
+        if (framework != null && metadata.getAttributes() != null) {
+            candidates.addAll(generateFrameworkXPath(metadata, tag, framework));
+        }
 
         // XPath with stable attribute
         String stableAttr = metadataService.getMostStableAttribute(metadata);
@@ -204,11 +212,14 @@ public class LocatorGenerationService {
             String attrValue = metadata.getAttributes().get(stableAttr);
             String xpath = String.format("//%s[@%s=%s]", 
                     tag, stableAttr, metadataService.escapeXPath(attrValue));
+            String reason = framework != null ? 
+                String.format("XPath with %s attribute (%s)", stableAttr, framework) :
+                "XPath with stable attribute";
             candidates.add(LocatorCandidate.builder()
                     .type("xpath")
                     .locator(xpath)
                     .score(0)
-                    .reason("XPath with stable attribute")
+                    .reason(reason)
                     .build());
         }
 
@@ -265,6 +276,62 @@ public class LocatorGenerationService {
                     .build());
         }
 
+        return candidates;
+    }
+    
+    /**
+     * Generate framework-specific XPath locators
+     */
+    private List<LocatorCandidate> generateFrameworkXPath(ElementMetadata metadata, String tag, String framework) {
+        List<LocatorCandidate> candidates = new ArrayList<>();
+        
+        if ("Angular".equals(framework)) {
+            // Angular-specific attributes
+            for (String attr : metadata.getAttributes().keySet()) {
+                if (attr.startsWith("ng-") || attr.startsWith("data-ng-")) {
+                    String value = metadata.getAttributes().get(attr);
+                    if (value != null && !value.isEmpty()) {
+                        candidates.add(LocatorCandidate.builder()
+                                .type("xpath")
+                                .locator(String.format("//%s[@%s='%s']", tag, attr, value))
+                                .score(0)
+                                .reason("XPath with Angular " + attr)
+                                .build());
+                    }
+                }
+            }
+        } else if ("Vue".equals(framework)) {
+            // Vue-specific attributes
+            for (String attr : metadata.getAttributes().keySet()) {
+                if (attr.startsWith("v-") || attr.startsWith(":") || attr.startsWith("@")) {
+                    String value = metadata.getAttributes().get(attr);
+                    if (value != null && !value.isEmpty()) {
+                        candidates.add(LocatorCandidate.builder()
+                                .type("xpath")
+                                .locator(String.format("//%s[@%s='%s']", tag, attr, value))
+                                .score(0)
+                                .reason("XPath with Vue " + attr)
+                                .build());
+                    }
+                }
+            }
+        } else if ("React".equals(framework)) {
+            // React-specific attributes (data-testid is common in React)
+            for (String attr : metadata.getAttributes().keySet()) {
+                if (attr.startsWith("data-react") || attr.equals("data-testid")) {
+                    String value = metadata.getAttributes().get(attr);
+                    if (value != null && !value.isEmpty()) {
+                        candidates.add(LocatorCandidate.builder()
+                                .type("xpath")
+                                .locator(String.format("//%s[@%s='%s']", tag, attr, value))
+                                .score(0)
+                                .reason("XPath with React " + attr)
+                                .build());
+                    }
+                }
+            }
+        }
+        
         return candidates;
     }
 
