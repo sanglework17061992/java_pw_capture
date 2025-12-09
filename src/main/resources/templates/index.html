@@ -43,7 +43,7 @@
                 
                 <div id="locatorsDisplay"></div>
                 
-                <div id="reasonsDisplay"></div>
+                <div id="domTreeDisplay"></div>
                 
                 <div id="metadataDisplay"></div>
             </div>
@@ -214,13 +214,8 @@
             
             document.getElementById('locatorsDisplay').innerHTML = locatorsHtml;
 
-            const reasonsList = result.reasons.map(r => `<li>${r}</li>`).join('');
-            document.getElementById('reasonsDisplay').innerHTML = `
-                <div class="reasons-list">
-                    <h4>Scoring Reasons:</h4>
-                    <ul>${reasonsList}</ul>
-                </div>
-            `;
+            // Build DOM tree structure
+            document.getElementById('domTreeDisplay').innerHTML = buildDomTree(result.metadata);
 
             document.getElementById('metadataDisplay').innerHTML = `
                 <h3>Element Metadata</h3>
@@ -234,6 +229,74 @@
             `;
 
             document.getElementById('locatorResult').scrollIntoView({ behavior: 'smooth' });
+        }
+        
+        function buildDomTree(metadata) {
+            if (!metadata.domPath || metadata.domPath.length === 0) {
+                return '<div class="dom-tree-container"><p>No DOM path available</p></div>';
+            }
+            
+            let html = '<div class="dom-tree-container">';
+            html += '<h3 style="margin-bottom: 1rem; color: #667eea;">DOM Structure Hierarchy</h3>';
+            html += '<div class="dom-tree">';
+            
+            // Traverse domPath array from body to current element
+            for (let i = 0; i < metadata.domPath.length; i++) {
+                const node = metadata.domPath[i];
+                const isCurrent = node.isCurrent;
+                
+                // Add indentation
+                if (i > 0) {
+                    html += '<div class="dom-indent">';
+                }
+                
+                // Build node display
+                const nodeClass = isCurrent ? 'dom-current' : 'dom-parent';
+                html += `<div class="dom-node ${nodeClass}">`;
+                
+                // Tag name
+                html += `<span class="dom-tag">&lt;${node.tagName}`;
+                
+                // Add id attribute if exists
+                if (node.id) {
+                    html += ` <span class="dom-attr">id</span>=<span class="dom-value">"${node.id}"</span>`;
+                }
+                
+                // Add class attribute if exists
+                if (node.classes && node.classes.length > 0) {
+                    const classStr = node.classes.join(' ');
+                    // Truncate long class names
+                    const displayClass = classStr.length > 50 ? classStr.substring(0, 50) + '...' : classStr;
+                    html += ` <span class="dom-attr">class</span>=<span class="dom-value">"${escapeHtml(displayClass)}"</span>`;
+                }
+                
+                html += '&gt;</span>';
+                
+                // Add "CURRENT" label
+                if (isCurrent) {
+                    html += ' <span class="dom-label">← CURRENT</span>';
+                }
+                
+                html += '</div>';
+                
+                // Add text content if exists (only for text-only nodes)
+                if (node.text && node.text.length > 0) {
+                    const displayText = node.text.length > 100 ? node.text.substring(0, 100) + '...' : node.text;
+                    html += '<div class="dom-text">';
+                    html += `<span class="dom-value">"${escapeHtml(displayText)}"</span>`;
+                    html += '</div>';
+                }
+            }
+            
+            // Close all indent divs
+            for (let i = 1; i < metadata.domPath.length; i++) {
+                html += '</div>'; // close indent
+            }
+            
+            html += '</div>'; // close dom-tree
+            html += '</div>'; // close container
+            
+            return html;
         }
     </script>
 </body>

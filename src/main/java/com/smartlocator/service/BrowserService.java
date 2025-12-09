@@ -194,18 +194,37 @@ public class BrowserService {
                             "    attrs[attr.name] = attr.value;" +
                             "  }" +
                             "" +
+                            "  const getDomPath = (el) => {" +
+                            "    const path = [];" +
+                            "    let current = el;" +
+                            "    while (current && current.tagName) {" +
+                            "      const nodeInfo = {" +
+                            "        tagName: current.tagName.toLowerCase()," +
+                            "        id: current.id || null," +
+                            "        classes: Array.from(current.classList)," +
+                            "        text: (current.childNodes.length === 1 && current.childNodes[0].nodeType === 3) ? current.textContent.trim() : null," +
+                            "        isCurrent: (current === el)" +
+                            "      };" +
+                            "      path.unshift(nodeInfo);" +
+                            "      if (current.tagName.toLowerCase() === 'body') break;" +
+                            "      current = current.parentElement;" +
+                            "    }" +
+                            "    return path;" +
+                            "  };" +
+                            "" +
                             "  return {" +
                             "    tagName: element.tagName.toLowerCase()," +
                             "    id: element.id || null," +
                             "    classList: Array.from(element.classList)," +
                             "    attributes: attrs," +
                             "    innerText: element.innerText || ''," +
-                            "    normalizedText: element.textContent?.trim().replace(/\\s+/g, ' ') || ''," +
+                            "    normalizedText: element.textContent?.trim().replace(/\\\\s+/g, ' ') || ''," +
                             "    parentTagName: element.parentElement?.tagName.toLowerCase() || null," +
                             "    nthIndex: getNthIndex(element)," +
                             "    cssPath: getCssPath(element)," +
                             "    xpathPath: getXPath(element)," +
-                            "    outerHTML: element.outerHTML" +
+                            "    outerHTML: element.outerHTML," +
+                            "    domPath: getDomPath(element)" +
                             "  };" +
                             "}",
                     element
@@ -228,6 +247,7 @@ public class BrowserService {
                     .xpathPath((String) metadataMap.get("xpathPath"))
                     .outerHTML((String) metadataMap.get("outerHTML"))
                     .isUnique(checkUniqueness((String) metadataMap.get("cssPath")))
+                    .domPath(convertToListOfMaps(metadataMap.get("domPath")))
                     .build();
 
         } catch (Exception e) {
@@ -258,6 +278,14 @@ public class BrowserService {
             return (Map<String, String>) obj;
         }
         return new HashMap<>();
+    }
+
+    @SuppressWarnings("unchecked")
+    private List<Map<String, Object>> convertToListOfMaps(Object obj) {
+        if (obj instanceof List) {
+            return (List<Map<String, Object>>) obj;
+        }
+        return new ArrayList<>();
     }
 
     private void injectHighlighterScript() {

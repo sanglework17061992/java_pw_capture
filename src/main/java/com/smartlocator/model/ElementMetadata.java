@@ -25,4 +25,5 @@ public class ElementMetadata {
     private String xpathPath;
     private boolean isUnique;
     private String outerHTML;
+    private List<Map<String, Object>> domPath; // Full DOM hierarchy from body to current element
 }

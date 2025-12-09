@@ -8,7 +8,8 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background: #f5f5f5;
+    background: linear-gradient(135deg, #f5f7fa 0%, #e8eaf6 50%, #f3e5f5 100%);
+    min-height: 100vh;
     color: #333;
 }
 
@@ -337,24 +338,92 @@ body {
     color: white;
 }
 
-/* Reasons List Styles */
-.reasons-list {
-    background: #fff3cd;
-    border-left: 4px solid #ffc107;
-    padding: 1rem;
-    border-radius: 5px;
+/* DOM Tree Styles */
+.dom-tree-container {
+    background: #f8f9fa;
+    border: 2px solid #667eea;
+    border-radius: 8px;
+    padding: 1.5rem;
     margin-top: 1rem;
+    overflow-x: auto;
+    max-width: 100%;
 }
 
-.reasons-list h4 {
-    color: #856404;
-    margin-bottom: 0.5rem;
+.dom-tree {
+    font-family: 'Courier New', monospace;
+    font-size: 0.9rem;
+    line-height: 1.8;
+    white-space: nowrap;
+    display: inline-block;
+    min-width: 100%;
 }
 
-.reasons-list li {
-    margin-left: 1.5rem;
-    margin-bottom: 0.25rem;
-    color: #856404;
+.dom-node {
+    padding: 0.4rem 0.6rem;
+    margin: 0.25rem 0;
+    border-radius: 4px;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    min-width: max-content;
+}
+
+.dom-parent {
+    background: #e9ecef;
+    color: #495057;
+}
+
+.dom-current {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+}
+
+.dom-text {
+    padding: 0.3rem 0.6rem 0.3rem 2.5rem;
+    margin: 0.25rem 0;
+    color: #28a745;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.dom-indent {
+    margin-left: 2rem;
+    border-left: 2px dashed #dee2e6;
+    padding-left: 1rem;
+}
+
+.dom-tag {
+    color: inherit;
+}
+
+.dom-attr {
+    color: #d63384;
+    font-weight: 600;
+}
+
+.dom-value {
+    color: #0d6efd;
+}
+
+.dom-current .dom-attr {
+    color: #ffc107;
+}
+
+.dom-current .dom-value {
+    color: #fff;
+    opacity: 0.95;
+}
+
+.dom-label {
+    margin-left: auto;
+    background: rgba(255, 255, 255, 0.2);
+    padding: 0.2rem 0.6rem;
+    border-radius: 3px;
+    font-size: 0.75rem;
+    font-weight: 700;
 }
 
 /* Alert Styles */
