@@ -337,6 +337,16 @@ public class LocatorGenerationService {
                 .reason("Playwright getByRole locator")
                 .build());
 
+        // If it's an <a> tag treated as button, also add link role as alternative
+        if ("button".equals(role) && "a".equals(metadata.getTagName())) {
+            candidates.add(LocatorCandidate.builder()
+                    .type("playwright")
+                    .locator("page.getByRole(AriaRole.LINK)")
+                    .score(0)
+                    .reason("Playwright getByRole as link (alternative)")
+                    .build());
+        }
+
         // Role with name option (from text content)
         String text = metadataService.normalizeText(metadata.getInnerText());
         if (!text.isEmpty()) {
@@ -406,6 +416,18 @@ public class LocatorGenerationService {
             case "button":
                 return "button";
             case "a":
+                // Check if <a> tag is used as a button (common pattern in modern web apps)
+                if (metadata.getAttributes() != null) {
+                    String className = metadata.getAttributes().get("class");
+                    String href = metadata.getAttributes().get("href");
+                    // If it has button-related classes or no/empty href, treat as button
+                    if ((className != null && (className.contains("btn") || 
+                                               className.contains("button") || 
+                                               className.contains("Button"))) ||
+                        (href != null && (href.equals("#") || href.equals("javascript:void(0)")))) {
+                        return "button";
+                    }
+                }
                 return "link";
             case "input":
                 String type = metadata.getAttributes() != null ? 

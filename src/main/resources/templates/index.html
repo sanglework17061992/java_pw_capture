@@ -2,66 +2,50 @@
 <html lang="en" xmlns:th="http://www.thymeleaf.org">
 <head th:replace="~{fragments :: head(title='Smart Locator Capture Tool')}"></head>
 <body>
-    <div th:replace="~{fragments :: header(pageTitle='Smart Locator Capture Tool', pageDescription='Generate high-quality locators for web automation with AI-powered scoring')}"></div>
+    <!-- Header with Browser Controls -->
+    <div class="header-with-controls">
+        <div class="header-left">
+            <h1>Smart Locator Capture Tool</h1>
+            <p>Generate high-quality locators for web automation with AI-powered scoring</p>
+        </div>
+        <div class="browser-controls">
+            <div class="control-row">
+                <span id="browserStatus" class="status-badge status-closed">Closed</span>
+                <input type="text" id="urlInput" placeholder="Enter URL" value="https://demo.playwright.dev/todomvc/">
+                <select id="browserType">
+                    <option value="chromium">Chromium</option>
+                    <option value="firefox">Firefox</option>
+                    <option value="webkit">WebKit</option>
+                </select>
+                <button class="btn btn-primary" onclick="openUrl()">Open</button>
+                <button class="btn btn-secondary" onclick="closeBrowser()">Close</button>
+            </div>
+        </div>
+    </div>
 
     <nav th:replace="~{fragments :: navigation(activePage='home')}"></nav>
 
-    <div class="container-fluid">
-        <div class="row">
-            <!-- Left Column: Browser Control -->
-            <div class="col-4">
-                <div class="section">
-                    <h2>Browser Control</h2>
-                    
-                    <div th:replace="~{fragments :: alertContainer}"></div>
+    <div th:replace="~{fragments :: alertContainer}"></div>
 
-                    <div class="form-group">
-                        <label>Browser Status:</label>
-                        <span id="browserStatus" class="status-badge status-closed">Closed</span>
-                    </div>
+    <!-- Main Content - Centered -->
+    <div class="main-container">
+        <div class="alert alert-info" style="margin-bottom: 1.5rem;">
+            <strong>Hover + Ctrl+Click Capture Mode:</strong> When a browser is open, hover over any element and <strong>Ctrl+Click</strong> (or <strong>Cmd+Click</strong> on Mac) to capture and generate smart locators.
+            Normal clicks work as usual for navigation.
+        </div>
 
-                    <div class="form-group">
-                        <label for="urlInput">URL to Open:</label>
-                        <input type="text" id="urlInput" placeholder="https://demo.playwright.dev/todomvc/" value="https://demo.playwright.dev/todomvc/">
-                    </div>
-
-                    <div class="form-group">
-                        <label for="browserType">Browser Type:</label>
-                        <select id="browserType">
-                            <option value="chromium">Chromium</option>
-                            <option value="firefox">Firefox</option>
-                            <option value="webkit">WebKit</option>
-                        </select>
-                    </div>
-
-                    <button class="btn btn-primary" onclick="openUrl()">Open URL</button>
-                    <button class="btn btn-secondary" onclick="closeBrowser()">Close Browser</button>
+        <div class="locator-result" id="locatorResult">
+            <div class="section">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
+                    <h2 style="margin: 0;">Generated Locators</h2>
+                    <div id="scoreDisplay"></div>
                 </div>
-
-                <div class="section">
-                    <h3>Instructions</h3>
-                    <div class="alert alert-info">
-                        <strong>Hover + Ctrl+Click Capture Mode:</strong> When a browser is open, hover over any element and <strong>Ctrl+Click</strong> (or <strong>Cmd+Click</strong> on Mac) to capture and generate smart locators.
-                        Normal clicks work as usual for navigation. The captured element will appear on the right in real-time.
-                    </div>
-                </div>
-            </div>
-
-            <!-- Right Column: Generated Locators -->
-            <div class="col-8">
-                <div class="locator-result" id="locatorResult">
-                    <div class="section">
-                        <h2>Generated Locators</h2>
-                        
-                        <div id="scoreDisplay"></div>
-                        
-                        <div id="locatorsDisplay"></div>
-                        
-                        <div id="reasonsDisplay"></div>
-                        
-                        <div id="metadataDisplay"></div>
-                    </div>
-                </div>
+                
+                <div id="locatorsDisplay"></div>
+                
+                <div id="reasonsDisplay"></div>
+                
+                <div id="metadataDisplay"></div>
             </div>
         </div>
     </div>
@@ -204,9 +188,9 @@
                               result.score >= 60 ? 'score-fair' : 'score-poor';
             
             document.getElementById('scoreDisplay').innerHTML = `
-                <div class="score-badge ${scoreClass}">
+                <span class="score-badge ${scoreClass}">
                     Score: ${result.score.toFixed(1)}/100
-                </div>
+                </span>
             `;
 
             let locatorsHtml = '';
