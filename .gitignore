@@ -1,0 +1,28 @@
+# Ignore build output
+target/
+*.jar
+!.mvn/wrapper/maven-wrapper.jar
+
+# Ignore IDE files
+.idea/
+*.iml
+.vscode/
+.settings/
+.classpath
+.project
+
+# Ignore database files
+data/
+*.db
+
+# Ignore logs
+*.log
+logs/
+
+# Ignore OS files
+.DS_Store
+Thumbs.db
+
+# Ignore Playwright cache
+.playwright/
+ms-playwright/

@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head(title='Settings - Smart Locator Capture Tool')}"></head>
+<body>
+    <div th:replace="~{fragments :: header(pageTitle='Settings', pageDescription='Configure locator generation preferences')}"></div>
+
+    <nav th:replace="~{fragments :: navigation(activePage='settings')}"></nav>
+
+    <div class="container">
+        <div class="section">
+            <h2>Scoring Weights</h2>
+            
+            <div class="alert alert-info">
+                <strong>ℹ️ Info:</strong> These weights determine how different factors contribute to the final locator score.
+                All weights must add up to 100%.
+            </div>
+
+            <div class="form-group">
+                <label for="stabilityWeight">Stability Weight (40%)</label>
+                <input type="range" id="stabilityWeight" min="0" max="100" value="40" disabled>
+                <p style="color: #666; font-size: 0.9rem;">How stable the locator is (won't change easily)</p>
+            </div>
+
+            <div class="form-group">
+                <label for="specificityWeight">Specificity Weight (30%)</label>
+                <input type="range" id="specificityWeight" min="0" max="100" value="30" disabled>
+                <p style="color: #666; font-size: 0.9rem;">How uniquely the locator identifies the element</p>
+            </div>
+
+            <div class="form-group">
+                <label for="readabilityWeight">Readability Weight (20%)</label>
+                <input type="range" id="readabilityWeight" min="0" max="100" value="20" disabled>
+                <p style="color: #666; font-size: 0.9rem;">How easy the locator is to read and understand</p>
+            </div>
+
+            <div class="form-group">
+                <label for="performanceWeight">Performance Weight (10%)</label>
+                <input type="range" id="performanceWeight" min="0" max="100" value="10" disabled>
+                <p style="color: #666; font-size: 0.9rem;">How fast the locator is in DOM queries</p>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Attribute Priority</h2>
+            
+            <div class="alert alert-info">
+                <strong>ℹ️ Info:</strong> These attributes are considered stable and are prioritized when generating locators.
+            </div>
+
+            <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 5px;">
+                <h4 style="margin-bottom: 1rem;">High Priority Attributes:</h4>
+                <ul style="margin-left: 2rem;">
+                    <li><code>data-test-id</code>, <code>data-testid</code>, <code>data-test</code></li>
+                    <li><code>data-qa</code>, <code>data-cy</code></li>
+                    <li><code>aria-label</code>, <code>aria-labelledby</code></li>
+                    <li><code>role</code>, <code>name</code>, <code>type</code></li>
+                    <li><code>placeholder</code></li>
+                </ul>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>Browser Settings</h2>
+            
+            <div class="form-group">
+                <label for="defaultBrowser">Default Browser Type</label>
+                <select id="defaultBrowser">
+                    <option value="chromium" selected>Chromium</option>
+                    <option value="firefox">Firefox</option>
+                    <option value="webkit">WebKit</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="showBrowser" checked> Show browser window (headless mode off)
+                </label>
+            </div>
+
+            <div class="form-group">
+                <label>
+                    <input type="checkbox" id="autoSave" checked> Auto-save to history
+                </label>
+            </div>
+        </div>
+
+        <div class="section">
+            <h2>About</h2>
+            
+            <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 5px;">
+                <h3 style="color: #667eea; margin-bottom: 1rem;">Smart Locator Capture Tool</h3>
+                <p><strong>Version:</strong> 1.0.0</p>
+                <p><strong>Technology:</strong> Spring Boot + Playwright-Java</p>
+                <p><strong>Purpose:</strong> Generate high-quality, stable locators for web automation</p>
+                
+                <h4 style="margin-top: 1.5rem; margin-bottom: 0.5rem;">Features:</h4>
+                <ul style="margin-left: 2rem;">
+                    <li>Multi-browser support (Chromium, Firefox, WebKit)</li>
+                    <li>Smart XPath generation (relative, stable)</li>
+                    <li>CSS selector optimization</li>
+                    <li>Playwright locator strings</li>
+                    <li>AI-powered scoring engine</li>
+                    <li>Capture history</li>
+                    <li>No Node.js required</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <script th:replace="~{fragments :: commonScripts}"></script>
+</body>
+</html>

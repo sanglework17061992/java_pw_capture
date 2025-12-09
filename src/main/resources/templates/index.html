@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{fragments :: head(title='Smart Locator Capture Tool')}"></head>
+<body>
+    <div th:replace="~{fragments :: header(pageTitle='Smart Locator Capture Tool', pageDescription='Generate high-quality locators for web automation with AI-powered scoring')}"></div>
+
+    <nav th:replace="~{fragments :: navigation(activePage='home')}"></nav>
+
+    <div class="container-fluid">
+        <div class="row">
+            <!-- Left Column: Browser Control -->
+            <div class="col-4">
+                <div class="section">
+                    <h2>Browser Control</h2>
+                    
+                    <div th:replace="~{fragments :: alertContainer}"></div>
+
+                    <div class="form-group">
+                        <label>Browser Status:</label>
+                        <span id="browserStatus" class="status-badge status-closed">Closed</span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="urlInput">URL to Open:</label>
+                        <input type="text" id="urlInput" placeholder="https://demo.playwright.dev/todomvc/" value="https://demo.playwright.dev/todomvc/">
+                    </div>
+
+                    <div class="form-group">
+                        <label for="browserType">Browser Type:</label>
+                        <select id="browserType">
+                            <option value="chromium">Chromium</option>
+                            <option value="firefox">Firefox</option>
+                            <option value="webkit">WebKit</option>
+                        </select>
+                    </div>
+
+                    <button class="btn btn-primary" onclick="openUrl()">Open URL</button>
+                    <button class="btn btn-secondary" onclick="closeBrowser()">Close Browser</button>
+                </div>
+
+                <div class="section">
+                    <h3>Instructions</h3>
+                    <div class="alert alert-info">
+                        <strong>Hover + Ctrl+Click Capture Mode:</strong> When a browser is open, hover over any element and <strong>Ctrl+Click</strong> (or <strong>Cmd+Click</strong> on Mac) to capture and generate smart locators.
+                        Normal clicks work as usual for navigation. The captured element will appear on the right in real-time.
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Column: Generated Locators -->
+            <div class="col-8">
+                <div class="locator-result" id="locatorResult">
+                    <div class="section">
+                        <h2>Generated Locators</h2>
+                        
+                        <div id="scoreDisplay"></div>
+                        
+                        <div id="locatorsDisplay"></div>
+                        
+                        <div id="reasonsDisplay"></div>
+                        
+                        <div id="metadataDisplay"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script th:replace="~{fragments :: commonScripts}"></script>
+    <script>
+        let pollingInterval = null;
+
+        // Check browser status on load
+        checkStatus();
+        setInterval(checkStatus, 5000);
+
+        async function checkStatus() {
+            try {
+                const response = await fetch(API_BASE + '/api/status');
+                const data = await response.json();
+                
+                const statusBadge = document.getElementById('browserStatus');
+                if (data.browserOpen) {
+                    statusBadge.textContent = 'Open (Capture Mode Active)';
+                    statusBadge.className = 'status-badge status-open';
+                    startPolling();
+                } else {
+                    statusBadge.textContent = 'Closed';
+                    statusBadge.className = 'status-badge status-closed';
+                    stopPolling();
+                }
+            } catch (error) {
+                console.error('Error checking status:', error);
+            }
+        }
+
+        function startPolling() {
+            if (pollingInterval) return;
+            pollingInterval = setInterval(pollForSelection, 500);
+        }
+
+        function stopPolling() {
+            if (pollingInterval) {
+                clearInterval(pollingInterval);
+                pollingInterval = null;
+            }
+        }
+
+        async function pollForSelection() {
+            try {
+                const response = await fetch(API_BASE + '/api/poll-selected-element');
+                const data = await response.json();
+                
+                if (data.hasSelection && data.result) {
+                    showAlert('Element captured!', 'success');
+                    displayResult(data.result);
+                    // Optional: play a sound or more prominent notification
+                }
+            } catch (error) {
+                console.error('Error polling:', error);
+            }
+        }
+
+        async function openUrl() {
+            const url = document.getElementById('urlInput').value;
+            const browserType = document.getElementById('browserType').value;
+            
+            if (!url) {
+                showAlert('Please enter a URL', 'error');
+                return;
+            }
+
+            showAlert('Opening browser...', 'info');
+
+            try {
+                const response = await fetch(API_BASE + '/api/open-url', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ url, browserType })
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert('Browser opened successfully! Navigate to elements you want to capture.', 'success');
+                    checkStatus();
+                } else {
+                    showAlert('❌ Error: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showAlert('❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function closeBrowser() {
+            try {
+                const response = await fetch(API_BASE + '/api/close-browser', {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+                
+                if (data.success) {
+                    showAlert('Browser closed', 'success');
+                    checkStatus();
+                } else {
+                    showAlert('❌ Error: ' + data.error, 'error');
+                }
+            } catch (error) {
+                showAlert('❌ Error: ' + error.message, 'error');
+            }
+        }
+
+        async function captureAndGenerate() {
+            const selector = document.getElementById('selectorInput').value;
+            
+            if (!selector) {
+                showAlert('Please enter a selector', 'error');
+                return;
+            }
+
+            showAlert('Capturing element and generating locators...', 'info');
+
+            try {
+                const response = await fetch(API_BASE + `/api/capture-and-generate?selector=${encodeURIComponent(selector)}`);
+                const result = await response.json();
+                
+                if (result.bestLocator) {
+                    showAlert('Locators generated successfully!', 'success');
+                    displayResult(result);
+                } else {
+                    showAlert('Error: ' + (result.error || 'Failed to generate locators'), 'error');
+                }
+            } catch (error) {
+                showAlert('Error: ' + error.message, 'error');
+            }
+        }
+
+        function displayResult(result) {
+            document.getElementById('locatorResult').style.display = 'block';
+
+            const scoreClass = result.score >= 90 ? 'score-excellent' :
+                              result.score >= 75 ? 'score-good' :
+                              result.score >= 60 ? 'score-fair' : 'score-poor';
+            
+            document.getElementById('scoreDisplay').innerHTML = `
+                <div class="score-badge ${scoreClass}">
+                    Score: ${result.score.toFixed(1)}/100
+                </div>
+            `;
+
+            let locatorsHtml = '';
+            for (const [type, locator] of Object.entries(result.candidates)) {
+                locatorsHtml += `
+                    <div class="locator-card">
+                        <div class="locator-type">${type}</div>
+                        <div class="locator-value">${escapeHtml(locator)}</div>
+                        <button class="copy-btn" data-locator="${escapeHtml(locator)}" onclick="copyToClipboard(this.getAttribute('data-locator'))">Copy</button>
+                    </div>
+                `;
+            }
+            
+            locatorsHtml += `
+                <div class="locator-card" style="border-left-color: #28a745;">
+                    <div class="locator-type">Best Locator (Recommended)</div>
+                    <div class="locator-value">${escapeHtml(result.bestLocator)}</div>
+                    <button class="copy-btn" data-locator="${escapeHtml(result.bestLocator)}" onclick="copyToClipboard(this.getAttribute('data-locator'))">Copy</button>
+                </div>
+            `;
+            
+            document.getElementById('locatorsDisplay').innerHTML = locatorsHtml;
+
+            const reasonsList = result.reasons.map(r => `<li>${r}</li>`).join('');
+            document.getElementById('reasonsDisplay').innerHTML = `
+                <div class="reasons-list">
+                    <h4>Scoring Reasons:</h4>
+                    <ul>${reasonsList}</ul>
+                </div>
+            `;
+
+            document.getElementById('metadataDisplay').innerHTML = `
+                <h3>Element Metadata</h3>
+                <div class="metadata-details">
+                    <strong>Tag:</strong> ${result.metadata.tagName}<br>
+                    <strong>ID:</strong> ${result.metadata.id || 'N/A'}<br>
+                    <strong>Classes:</strong> ${result.metadata.classList ? result.metadata.classList.join(', ') : 'N/A'}<br>
+                    <strong>Text:</strong> ${result.metadata.innerText || 'N/A'}<br>
+                    <strong>Attributes:</strong> ${JSON.stringify(result.metadata.attributes, null, 2)}
+                </div>
+            `;
+
+            document.getElementById('locatorResult').scrollIntoView({ behavior: 'smooth' });
+        }
+    </script>
+</body>
+</html>

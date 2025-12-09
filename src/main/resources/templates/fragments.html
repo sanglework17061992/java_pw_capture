@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head th:fragment="head(title)">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title th:text="${title}">Smart Locator Capture Tool</title>
+    <link rel="stylesheet" th:href="@{/css/style.css}">
+</head>
+<body>
+
+<!-- Header Fragment -->
+<div th:fragment="header(pageTitle, pageDescription)" class="header">
+    <h1 th:text="${pageTitle}">Smart Locator Capture Tool</h1>
+    <p th:text="${pageDescription}">Generate high-quality locators for web automation with AI-powered scoring</p>
+</div>
+
+<!-- Navigation Fragment -->
+<nav th:fragment="navigation(activePage)" class="nav">
+    <a th:href="@{/}" th:classappend="${activePage == 'home'} ? 'active' : ''">Locator Generator</a>
+    <a th:href="@{/settings}" th:classappend="${activePage == 'settings'} ? 'active' : ''">Settings</a>
+</nav>
+
+<!-- Alert Fragment -->
+<div th:fragment="alertContainer" id="statusAlert"></div>
+
+<!-- Common JavaScript Functions Fragment -->
+<script th:fragment="commonScripts">
+    const API_BASE = '';
+
+    function showAlert(message, type) {
+        const alertDiv = document.getElementById('statusAlert');
+        if (alertDiv) {
+            alertDiv.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            setTimeout(() => {
+                alertDiv.innerHTML = '';
+            }, 5000);
+        }
+    }
+
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    function unescapeHtml(text) {
+        const div = document.createElement('div');
+        div.innerHTML = text;
+        return div.textContent;
+    }
+
+    function copyToClipboard(text) {
+        const unescaped = unescapeHtml(text);
+        navigator.clipboard.writeText(unescaped).then(() => {
+            showAlert('✅ Copied to clipboard!', 'success');
+        }).catch(err => {
+            showAlert('❌ Failed to copy', 'error');
+        });
+    }
+
+    function truncate(str, length) {
+        if (!str) return 'N/A';
+        return str.length > length ? str.substring(0, length) + '...' : str;
+    }
+
+    function formatDate(timestamp) {
+        if (!timestamp) return 'N/A';
+        const date = new Date(timestamp);
+        return date.toLocaleString();
+    }
+</script>
+
+</body>
+</html>
