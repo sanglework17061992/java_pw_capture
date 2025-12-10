@@ -38,23 +38,36 @@ mvn clean package
 mvn spring-boot:run
 ```
 
-### Option 2: Run from JAR File
+### Option 2: Share with Teammates
 
-First, install Playwright browsers:
+**Recommended: Share the entire project**
 
-```bash
-# Install browsers for Playwright
-mvn exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D exec.args="install"
-```
-
-Then run the JAR:
+Send your teammates the whole project folder and they can run:
 
 ```bash
-# Run the JAR file
-java -jar target/smart-locator.jar
+cd java_pw_capture
+mvn spring-boot:run
 ```
 
-**Note**: If you encounter Playwright initialization errors when running from JAR, use Option 1 (Maven) or ensure Playwright browsers are properly installed.
+This is the most reliable method and requires only:
+- Java 17+
+- Maven installed
+
+**Alternative: Run from JAR (Has Known Issues)**
+
+If you need to share just the JAR file:
+
+1. Build the JAR: `mvn clean package -DskipTests`
+2. Share `target/smart-locator.jar` with teammates
+3. They need to install Playwright browsers first:
+   ```bash
+   # They need the project folder for this command
+   cd java_pw_capture
+   mvn exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D exec.args="install"
+   ```
+4. Run: `java -jar smart-locator.jar`
+
+⚠️ **Warning**: Running from JAR has Playwright driver extraction issues. The application starts but may fail when opening browsers. Use Option 1 (Maven) for best results.
 
 The application will start on `http://localhost:8080`
 
