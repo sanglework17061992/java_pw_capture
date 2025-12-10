@@ -231,6 +231,43 @@ public class LocatorController {
     }
 
     /**
+     * Capture and generate locators for an element by selector
+     */
+    @PostMapping("/capture-by-selector")
+    public ResponseEntity<Map<String, Object>> captureBySelector(@RequestBody Map<String, String> request) {
+        try {
+            String selector = request.get("selector");
+            if (selector == null || selector.isEmpty()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("error", "Selector is required");
+                return ResponseEntity.badRequest().body(error);
+            }
+            
+            // Capture element metadata
+            ElementMetadata metadata = browserService.captureElementBySelector(selector);
+            
+            // Generate locators
+            List<LocatorCandidate> candidates = locatorGenerationService.generateAllLocators(metadata);
+            
+            // Score and select best locators
+            LocatorResult result = locatorScoringService.scoreAndSelectBest(candidates, metadata);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("result", result);
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error capturing element by selector", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+
+    /**
      * Take screenshot
      */
     @GetMapping("/screenshot")

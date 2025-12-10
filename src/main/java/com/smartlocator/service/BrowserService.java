@@ -471,6 +471,32 @@ public class BrowserService {
         }
     }
 
+    public ElementMetadata captureElementBySelector(String selector) {
+        if (page == null) {
+            throw new IllegalStateException("Browser is not open");
+        }
+        
+        try {
+            // First, find the element using the selector
+            Locator locator = page.locator(selector).first();
+            int count = locator.count();
+            
+            if (count == 0) {
+                throw new IllegalStateException("Element not found with selector: " + selector);
+            }
+            
+            // Get the element handle
+            ElementHandle elementHandle = locator.elementHandle();
+            
+            // Use existing extractMetadata method
+            return extractMetadata(elementHandle);
+            
+        } catch (Exception e) {
+            log.error("Error capturing element by selector: {}", selector, e);
+            throw new IllegalStateException("Failed to capture element: " + e.getMessage());
+        }
+    }
+
     public boolean isBrowserOpen() {
         return browser != null && page != null;
     }

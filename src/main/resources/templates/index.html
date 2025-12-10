@@ -371,7 +371,8 @@
         
         async function highlightDomNode(selector) {
             try {
-                const response = await fetch(API_BASE + '/api/highlight-element', {
+                // First highlight the element
+                const highlightResponse = await fetch(API_BASE + '/api/highlight-element', {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -379,12 +380,33 @@
                     body: JSON.stringify({ selector: selector })
                 });
                 
-                const data = await response.json();
-                if (!data.success) {
-                    console.error('Error highlighting element:', data.error);
+                const highlightData = await highlightResponse.json();
+                if (!highlightData.success) {
+                    console.error('Error highlighting element:', highlightData.error);
+                    showAlert('Error highlighting element: ' + highlightData.error, 'error');
+                    return;
+                }
+                
+                // Then capture and generate locators for this element
+                const captureResponse = await fetch(API_BASE + '/api/capture-by-selector', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ selector: selector })
+                });
+                
+                const captureData = await captureResponse.json();
+                if (captureData.success && captureData.result) {
+                    showAlert('Element captured! Generating locators...', 'success');
+                    displayResult(captureData.result);
+                } else {
+                    console.error('Error capturing element:', captureData.error);
+                    showAlert('Error capturing element: ' + captureData.error, 'error');
                 }
             } catch (error) {
-                console.error('Error highlighting element:', error);
+                console.error('Error in highlightDomNode:', error);
+                showAlert('Error: ' + error.message, 'error');
             }
         }
     </script>
