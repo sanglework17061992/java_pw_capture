@@ -20,7 +20,8 @@
 
     <properties>
         <java.version>17</java.version>
-        <playwright.version>1.40.0</playwright.version>
+        <selenium.version>4.16.0</selenium.version>
+        <webdrivermanager.version>5.6.2</webdrivermanager.version>
     </properties>
 
     <dependencies>
@@ -46,11 +47,18 @@
             <optional>true</optional>
         </dependency>
 
-        <!-- Playwright for Java -->
+        <!-- Selenium WebDriver -->
         <dependency>
-            <groupId>com.microsoft.playwright</groupId>
-            <artifactId>playwright</artifactId>
-            <version>${playwright.version}</version>
+            <groupId>org.seleniumhq.selenium</groupId>
+            <artifactId>selenium-java</artifactId>
+            <version>${selenium.version}</version>
+        </dependency>
+
+        <!-- WebDriverManager for automatic driver management -->
+        <dependency>
+            <groupId>io.github.bonigarcia</groupId>
+            <artifactId>webdrivermanager</artifactId>
+            <version>${webdrivermanager.version}</version>
         </dependency>
 
         <!-- Lombok for cleaner code -->

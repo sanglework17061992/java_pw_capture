@@ -11,15 +11,15 @@ public class SmartLocatorApplication {
 
     public static void main(String[] args) {
         System.out.println("========================================");
-        System.out.println("🎯 Smart Locator Capture Tool");
+        System.out.println("Smart Locator Capture Tool");
         System.out.println("========================================");
         System.out.println("Starting application...");
         
         SpringApplication.run(SmartLocatorApplication.class, args);
         
         System.out.println("========================================");
-        System.out.println("✅ Application started successfully!");
-        System.out.println("🌐 Open your browser to: http://localhost:8080");
+        System.out.println("Application started successfully!");
+        System.out.println("Open your browser to: http://localhost:8080");
         System.out.println("========================================");
     }
 
