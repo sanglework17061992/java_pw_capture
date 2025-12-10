@@ -58,17 +58,27 @@ public class LocatorScoringService {
             .max(Comparator.comparing(LocatorCandidate::getScore))
             .ifPresent(c -> candidatesMap.put("CSS", c.getLocator()));
         
-        // 3. XPath locators (show meaningful unique options - top 3)
-        List<LocatorCandidate> xpathCandidates = candidates.stream()
+        // 3. XPath locators (show unique options only)
+        Map<String, LocatorCandidate> uniqueXPath = new LinkedHashMap<>();
+        candidates.stream()
             .filter(c -> c.getType().equals("xpath"))
             .sorted((a, b) -> Double.compare(b.getScore(), a.getScore()))
-            .distinct() // Remove duplicates
-            .limit(3) // Only show top 3 meaningful XPath options
-            .collect(Collectors.toList());
+            .forEach(c -> {
+                // Only add if we haven't seen this exact locator string before
+                if (!uniqueXPath.containsKey(c.getLocator())) {
+                    uniqueXPath.put(c.getLocator(), c);
+                }
+            });
         
-        for (int i = 0; i < xpathCandidates.size(); i++) {
-            String key = xpathCandidates.size() > 1 ? "XPATH_" + (i + 1) : "XPATH";
-            candidatesMap.put(key, xpathCandidates.get(i).getLocator());
+        List<LocatorCandidate> xpathCandidates = new ArrayList<>(uniqueXPath.values());
+        
+        // If only one unique XPath, show as XPATH; otherwise show top 3 as XPATH_1, XPATH_2, XPATH_3
+        if (xpathCandidates.size() == 1) {
+            candidatesMap.put("XPATH", xpathCandidates.get(0).getLocator());
+        } else {
+            for (int i = 0; i < Math.min(xpathCandidates.size(), 3); i++) {
+                candidatesMap.put("XPATH_" + (i + 1), xpathCandidates.get(i).getLocator());
+            }
         }
         
         // 4. Playwright locator (best one)

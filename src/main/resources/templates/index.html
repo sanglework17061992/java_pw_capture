@@ -5,13 +5,12 @@
     <!-- Header with Browser Controls -->
     <div class="header-with-controls">
         <div class="header-left">
-            <h1>Smart Locator Capture Tool</h1>
-            <p>Generate high-quality locators for web automation with AI-powered scoring</p>
+            <h1 title="Hover + Ctrl+Click Capture Mode: When a browser is open, hover over any element and Ctrl+Click (or Cmd+Click on Mac) to capture and generate smart locators. Normal clicks work as usual for navigation.">Smart Locator Capture Tool</h1>
         </div>
         <div class="browser-controls">
             <div class="control-row">
                 <span id="browserStatus" class="status-badge status-closed">Closed</span>
-                <input type="text" id="urlInput" placeholder="Enter URL" value="https://demo.playwright.dev/todomvc/">
+                <input type="text" id="urlInput" placeholder="Enter URL" value="file:///home/sangle/Desktop/java_pw_capture/test-page.html">
                 <select id="browserType">
                     <option value="chromium">Chromium</option>
                     <option value="firefox">Firefox</option>
@@ -29,11 +28,6 @@
 
     <!-- Main Content - Centered -->
     <div class="main-container">
-        <div class="alert alert-info" style="margin-bottom: 1.5rem;">
-            <strong>Hover + Ctrl+Click Capture Mode:</strong> When a browser is open, hover over any element and <strong>Ctrl+Click</strong> (or <strong>Cmd+Click</strong> on Mac) to capture and generate smart locators.
-            Normal clicks work as usual for navigation.
-        </div>
-
         <div class="locator-result" id="locatorResult">
             <div class="section">
                 <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 15px;">
@@ -180,7 +174,21 @@
             }
         }
 
-        function displayResult(result) {
+        async function countElements(locator) {
+            try {
+                const response = await fetch(API_BASE + `/api/count-elements?locator=${encodeURIComponent(locator)}`);
+                const result = await response.json();
+                return {
+                    count: result.count || 0,
+                    uniqueSuggestion: result.uniqueSuggestion || null,
+                    uniqueCount: result.uniqueCount || 0
+                };
+            } catch (error) {
+                return { count: 0, uniqueSuggestion: null, uniqueCount: 0 };
+            }
+        }
+
+        async function displayResult(result) {
             document.getElementById('locatorResult').style.display = 'block';
 
             const scoreClass = result.score >= 90 ? 'score-excellent' :
@@ -195,22 +203,72 @@
 
             let locatorsHtml = '';
             for (const [type, locator] of Object.entries(result.candidates)) {
+                const countInfo = await countElements(locator);
+                const count = countInfo.count;
+                
+                // Handle Playwright API methods that can't be counted (-1)
+                let countBadge = '';
+                let countClass = '';
+                if (count === -1) {
+                    countBadge = '<span class="locator-count count-api">API Method</span>';
+                } else {
+                    countClass = count === 1 ? 'count-unique' : count > 1 ? 'count-multiple' : 'count-none';
+                    countBadge = `<span class="locator-count ${countClass}">${count} match${count !== 1 ? 'es' : ''}</span>`;
+                }
+                
                 locatorsHtml += `
                     <div class="locator-card">
-                        <div class="locator-type">${type}</div>
+                        <div class="locator-header">
+                            <div class="locator-type">${type}</div>
+                            ${countBadge}
+                        </div>
                         <div class="locator-value">${escapeHtml(locator)}</div>
                         <button class="copy-btn" data-locator="${escapeHtml(locator)}" onclick="copyToClipboard(this.getAttribute('data-locator'))">Copy</button>
                     </div>
                 `;
+                
+                // If count > 1 and we have a unique suggestion, show it
+                if (count > 1 && countInfo.uniqueSuggestion && countInfo.uniqueCount === 1) {
+                    locatorsHtml += `
+                        <div class="locator-card locator-suggestion">
+                            <div class="locator-header">
+                                <div class="locator-type">${type} (Unique Suggestion)</div>
+                                <span class="locator-count count-unique">1 match</span>
+                            </div>
+                            <div class="locator-value">${escapeHtml(countInfo.uniqueSuggestion)}</div>
+                            <button class="copy-btn" data-locator="${escapeHtml(countInfo.uniqueSuggestion)}" onclick="copyToClipboard(this.getAttribute('data-locator'))">Copy</button>
+                        </div>
+                    `;
+                }
             }
             
+            const bestCountInfo = await countElements(result.bestLocator);
+            const bestCount = bestCountInfo.count;
+            const bestCountClass = bestCount === 1 ? 'count-unique' : bestCount > 1 ? 'count-multiple' : 'count-none';
             locatorsHtml += `
                 <div class="locator-card" style="border-left-color: #28a745;">
-                    <div class="locator-type">Best Locator (Recommended)</div>
+                    <div class="locator-header">
+                        <div class="locator-type">Best Locator (Recommended)</div>
+                        <span class="locator-count ${bestCountClass}">${bestCount} match${bestCount !== 1 ? 'es' : ''}</span>
+                    </div>
                     <div class="locator-value">${escapeHtml(result.bestLocator)}</div>
                     <button class="copy-btn" data-locator="${escapeHtml(result.bestLocator)}" onclick="copyToClipboard(this.getAttribute('data-locator'))">Copy</button>
                 </div>
             `;
+            
+            // If best locator has multiple matches and we have a unique suggestion
+            if (bestCount > 1 && bestCountInfo.uniqueSuggestion && bestCountInfo.uniqueCount === 1) {
+                locatorsHtml += `
+                    <div class="locator-card locator-suggestion" style="border-left-color: #28a745;">
+                        <div class="locator-header">
+                            <div class="locator-type">Best Locator (Unique Suggestion)</div>
+                            <span class="locator-count count-unique">1 match</span>
+                        </div>
+                        <div class="locator-value">${escapeHtml(bestCountInfo.uniqueSuggestion)}</div>
+                        <button class="copy-btn" data-locator="${escapeHtml(bestCountInfo.uniqueSuggestion)}" onclick="copyToClipboard(this.getAttribute('data-locator'))">Copy</button>
+                    </div>
+                `;
+            }
             
             document.getElementById('locatorsDisplay').innerHTML = locatorsHtml;
 
@@ -255,7 +313,7 @@
                 html += `<div class="dom-node ${nodeClass}">`;
                 
                 // Tag name
-                html += `<span class="dom-tag">&lt;${node.tagName}`;
+                html += `<span class="dom-tag">&lt;${node.tag}`;
                 
                 // Add id attribute if exists
                 if (node.id) {

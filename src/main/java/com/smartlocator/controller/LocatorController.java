@@ -282,4 +282,44 @@ public class LocatorController {
             return ResponseEntity.ok(error);
         }
     }
+
+    /**
+     * Count elements matching a locator
+     */
+    @GetMapping("/count-elements")
+    public ResponseEntity<?> countElements(@RequestParam String locator) {
+        try {
+            if (!browserService.isBrowserOpen()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("count", 0);
+                error.put("error", "No browser is open");
+                return ResponseEntity.ok(error);
+            }
+
+            int count = browserService.countElements(locator);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("count", count);
+            
+            // If count > 1, try to generate a unique XPath suggestion
+            if (count > 1 && locator.startsWith("//")) {
+                String uniqueXPath = browserService.generateUniqueXPath(locator);
+                if (uniqueXPath != null) {
+                    response.put("uniqueSuggestion", uniqueXPath);
+                    response.put("uniqueCount", browserService.countElements(uniqueXPath));
+                }
+            }
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error counting elements", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("count", 0);
+            error.put("error", e.getMessage());
+            return ResponseEntity.ok(error);
+        }
+    }
 }

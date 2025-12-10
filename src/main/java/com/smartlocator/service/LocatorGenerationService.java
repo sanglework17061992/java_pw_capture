@@ -275,8 +275,85 @@ public class LocatorGenerationService {
                     .reason("XPath with position")
                     .build());
         }
+        
+        // XPath with full hierarchy (grandparent -> parent -> current)
+        candidates.addAll(generateHierarchicalXPath(metadata));
 
         return candidates;
+    }
+    
+    /**
+     * Generate XPath with full hierarchy (grandparent -> parent -> current)
+     */
+    private List<LocatorCandidate> generateHierarchicalXPath(ElementMetadata metadata) {
+        List<LocatorCandidate> candidates = new ArrayList<>();
+        
+        if (metadata.getDomPath() == null || metadata.getDomPath().isEmpty()) {
+            return candidates;
+        }
+        
+        List<Map<String, Object>> domPath = metadata.getDomPath();
+        int size = domPath.size();
+        
+        // Need at least grandparent, parent, and current (3 levels)
+        if (size < 3) {
+            return candidates;
+        }
+        
+        // Get last 3 elements: grandparent, parent, current
+        Map<String, Object> grandparent = domPath.get(size - 3);
+        Map<String, Object> parent = domPath.get(size - 2);
+        Map<String, Object> current = domPath.get(size - 1);
+        
+        // Build hierarchical XPath
+        StringBuilder xpathBuilder = new StringBuilder("//");
+        
+        // Grandparent
+        xpathBuilder.append(getNodeSelector(grandparent, false));
+        xpathBuilder.append("/");
+        
+        // Parent
+        xpathBuilder.append(getNodeSelector(parent, false));
+        xpathBuilder.append("/");
+        
+        // Current
+        xpathBuilder.append(getNodeSelector(current, true));
+        
+        candidates.add(LocatorCandidate.builder()
+                .type("xpath")
+                .locator(xpathBuilder.toString())
+                .score(0)
+                .reason("XPath with hierarchy (grandparent → parent → current)")
+                .build());
+        
+        return candidates;
+    }
+    
+    /**
+     * Helper method to generate selector for a DOM node
+     */
+    private String getNodeSelector(Map<String, Object> node, boolean isCurrent) {
+        String tag = (String) node.get("tag");
+        if (tag == null || tag.isEmpty()) {
+            tag = "*"; // fallback to any element
+        }
+        
+        String id = (String) node.get("id");
+        @SuppressWarnings("unchecked")
+        List<String> classes = (List<String>) node.get("classes");
+        
+        // If node has ID, use it
+        if (id != null && !id.isEmpty()) {
+            return tag + "[@id='" + id + "']";
+        }
+        
+        // If node has classes, use first one
+        if (classes != null && !classes.isEmpty() && !classes.get(0).isEmpty()) {
+            return tag + "[contains(@class, '" + classes.get(0) + "')]";
+        }
+        
+        // Otherwise just use tag name
+        return tag;
     }
     
     /**

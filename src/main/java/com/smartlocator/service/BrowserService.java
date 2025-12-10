@@ -57,8 +57,11 @@ public class BrowserService {
                 };
 
                 context = browser.newContext(new Browser.NewContextOptions()
-                        .setViewportSize(1280, 720));
+                        .setViewportSize(1920, 1080));
                 page = context.newPage();
+                
+                // Maximize the browser window
+                page.setViewportSize(1920, 1080);
                 
                 // Add listener to re-inject script on navigation
                 page.onLoad(p -> {
@@ -199,7 +202,7 @@ public class BrowserService {
                             "    let current = el;" +
                             "    while (current && current.tagName) {" +
                             "      const nodeInfo = {" +
-                            "        tagName: current.tagName.toLowerCase()," +
+                            "        tag: current.tagName.toLowerCase()," +
                             "        id: current.id || null," +
                             "        classes: Array.from(current.classList)," +
                             "        text: (current.childNodes.length === 1 && current.childNodes[0].nodeType === 3) ? current.textContent.trim() : null," +
@@ -434,6 +437,160 @@ public class BrowserService {
 
     public String getCurrentUrl() {
         return page != null ? page.url() : null;
+    }
+
+    public int countElements(String locator) {
+        if (page == null) {
+            return 0;
+        }
+
+        try {
+            // Skip counting for Playwright API methods (they're not CSS/XPath selectors)
+            if (locator.startsWith("page.")) {
+                return -1; // Special value to indicate "not countable"
+            }
+            
+            // Try to count elements using the locator
+            Locator elementLocator = page.locator(locator);
+            return elementLocator.count();
+        } catch (Exception e) {
+            log.warn("Error counting elements for locator '{}': {}", locator, e.getMessage());
+            return 0;
+        }
+    }
+
+    public String generateUniqueXPath(String originalXPath) {
+        if (page == null) {
+            return null;
+        }
+
+        try {
+            // Check if the original XPath has multiple matches
+            int count = countElements(originalXPath);
+            if (count <= 1) {
+                return null; // Already unique or not found
+            }
+            
+            // Execute JavaScript to find a unique parent and generate a unique XPath
+            Object result = page.evaluate("""
+                (xpath) => {
+                    // Get all matching elements
+                    const xpathResult = document.evaluate(xpath, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                    if (xpathResult.snapshotLength === 0) return null;
+                    
+                    const targetElement = xpathResult.snapshotItem(0);
+                    
+                    // Function to find a unique parent
+                    function findUniqueParent(el) {
+                        let current = el.parentElement;
+                        while (current && current !== document.body) {
+                            // Check for unique ID
+                            if (current.id) {
+                                return {
+                                    type: 'id',
+                                    value: current.id,
+                                    tag: current.tagName.toLowerCase()
+                                };
+                            }
+                            
+                            // Check for unique data attributes
+                            const dataAttrs = Array.from(current.attributes)
+                                .filter(attr => attr.name.startsWith('data-') && attr.value);
+                            if (dataAttrs.length > 0) {
+                                for (const attr of dataAttrs) {
+                                    const selector = `//${current.tagName.toLowerCase()}[@${attr.name}='${attr.value}']`;
+                                    const result = document.evaluate(selector, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                                    if (result.snapshotLength === 1) {
+                                        return {
+                                            type: 'attribute',
+                                            name: attr.name,
+                                            value: attr.value,
+                                            tag: current.tagName.toLowerCase()
+                                        };
+                                    }
+                                }
+                            }
+                            
+                            // Check for unique class combination
+                            if (current.classList.length > 0) {
+                                const classes = Array.from(current.classList);
+                                for (let i = 1; i <= Math.min(classes.length, 2); i++) {
+                                    const classCombinations = classes.slice(0, i);
+                                    const classCondition = classCombinations.map(c => `contains(@class, '${c}')`).join(' and ');
+                                    const selector = `//${current.tagName.toLowerCase()}[${classCondition}]`;
+                                    const result = document.evaluate(selector, document, null, XPathResult.ORDERED_NODE_SNAPSHOT_TYPE, null);
+                                    if (result.snapshotLength === 1) {
+                                        return {
+                                            type: 'class',
+                                            value: classCombinations.join(' '),
+                                            tag: current.tagName.toLowerCase()
+                                        };
+                                    }
+                                }
+                            }
+                            
+                            current = current.parentElement;
+                        }
+                        return null;
+                    }
+                    
+                    // Find the path from target element to the unique parent
+                    function getRelativePath(el, parent) {
+                        const parts = [];
+                        let current = el;
+                        
+                        while (current && current !== parent && current !== document.body) {
+                            let tag = current.tagName.toLowerCase();
+                            
+                            // Get position among siblings of same tag
+                            const siblings = Array.from(current.parentElement.children)
+                                .filter(sibling => sibling.tagName === current.tagName);
+                            if (siblings.length > 1) {
+                                const position = siblings.indexOf(current) + 1;
+                                tag += `[${position}]`;
+                            }
+                            
+                            parts.unshift(tag);
+                            current = current.parentElement;
+                        }
+                        
+                        return parts.join('/');
+                    }
+                    
+                    const uniqueParentInfo = findUniqueParent(targetElement);
+                    if (!uniqueParentInfo) return null;
+                    
+                    // Build unique XPath
+                    let uniqueXPath = '';
+                    if (uniqueParentInfo.type === 'id') {
+                        uniqueXPath = `//${uniqueParentInfo.tag}[@id='${uniqueParentInfo.value}']`;
+                    } else if (uniqueParentInfo.type === 'attribute') {
+                        uniqueXPath = `//${uniqueParentInfo.tag}[@${uniqueParentInfo.name}='${uniqueParentInfo.value}']`;
+                    } else if (uniqueParentInfo.type === 'class') {
+                        const classes = uniqueParentInfo.value.split(' ');
+                        const classCondition = classes.map(c => `contains(@class, '${c}')`).join(' and ');
+                        uniqueXPath = `//${uniqueParentInfo.tag}[${classCondition}]`;
+                    }
+                    
+                    // Get the unique parent element
+                    const parentResult = document.evaluate(uniqueXPath, document, null, XPathResult.FIRST_ORDERED_NODE_TYPE, null);
+                    const uniqueParent = parentResult.singleNodeValue;
+                    
+                    if (!uniqueParent) return null;
+                    
+                    // Get relative path from unique parent to target
+                    const relativePath = getRelativePath(targetElement, uniqueParent);
+                    
+                    // Combine to create the final unique XPath
+                    return uniqueXPath + (relativePath ? '/' + relativePath : '');
+                }
+            """, originalXPath);
+
+            return result != null ? result.toString() : null;
+        } catch (Exception e) {
+            log.warn("Error generating unique XPath for '{}': {}", originalXPath, e.getMessage());
+            return null;
+        }
     }
 
     public byte[] takeScreenshot() {
