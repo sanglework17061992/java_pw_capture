@@ -278,6 +278,9 @@ public class LocatorGenerationService {
         
         // XPath with full hierarchy (grandparent -> parent -> current)
         candidates.addAll(generateHierarchicalXPath(metadata));
+        
+        // Dynamic XPath for repeating patterns (lists, tables, menus)
+        candidates.addAll(generateDynamicXPath(metadata));
 
         return candidates;
     }
@@ -354,6 +357,148 @@ public class LocatorGenerationService {
         
         // Otherwise just use tag name
         return tag;
+    }
+    
+    /**
+     * Generate dynamic XPath for repeating patterns (lists, tables, menus)
+     * These use %s placeholders for parameterized testing
+     */
+    private List<LocatorCandidate> generateDynamicXPath(ElementMetadata metadata) {
+        List<LocatorCandidate> candidates = new ArrayList<>();
+        
+        if (metadata.getDomPath() == null || metadata.getDomPath().isEmpty()) {
+            return candidates;
+        }
+        
+        String tag = metadata.getTagName();
+        Map<String, String> attributes = metadata.getAttributes();
+        
+        // Check if element is part of a list/menu pattern (li > a structure)
+        if ("a".equals(tag) && metadata.getParentTagName() != null && "li".equals(metadata.getParentTagName())) {
+            // Menu item pattern: //ul[@data-menu='...']/li/a[text()='%s']
+            List<Map<String, Object>> domPath = metadata.getDomPath();
+            for (int i = domPath.size() - 1; i >= 0; i--) {
+                Map<String, Object> node = domPath.get(i);
+                String nodeTag = (String) node.get("tag");
+                if ("ul".equals(nodeTag) || "nav".equals(nodeTag)) {
+                    String nodeId = (String) node.get("id");
+                    @SuppressWarnings("unchecked")
+                    List<String> nodeClasses = (List<String>) node.get("classes");
+                    
+                    if (nodeId != null && !nodeId.isEmpty()) {
+                        candidates.add(LocatorCandidate.builder()
+                                .type("xpath")
+                                .locator(String.format("//%s[@id='%s']/li/a[text()='%%s']", nodeTag, nodeId))
+                                .score(0)
+                                .reason("Dynamic XPath for menu items (use String.format with menu text)")
+                                .build());
+                    } else if (nodeClasses != null && !nodeClasses.isEmpty()) {
+                        candidates.add(LocatorCandidate.builder()
+                                .type("xpath")
+                                .locator(String.format("//%s[contains(@class, '%s')]/li/a[text()='%%s']", nodeTag, nodeClasses.get(0)))
+                                .score(0)
+                                .reason("Dynamic XPath for menu items (use String.format with menu text)")
+                                .build());
+                    }
+                    break;
+                }
+            }
+            
+            // Data attribute pattern for menu: //a[@data-page='%s']
+            if (attributes != null) {
+                for (String attr : attributes.keySet()) {
+                    if (attr.startsWith("data-")) {
+                        candidates.add(LocatorCandidate.builder()
+                                .type("xpath")
+                                .locator(String.format("//a[@%s='%%s']", attr))
+                                .score(0)
+                                .reason("Dynamic XPath for menu by data attribute (use String.format with attribute value)")
+                                .build());
+                        break; // Only add one data-attribute pattern
+                    }
+                }
+            }
+        }
+        
+        // Check if element is in a table row
+        if (metadata.getParentTagName() != null && "tr".equals(metadata.getParentTagName())) {
+            List<Map<String, Object>> domPath = metadata.getDomPath();
+            
+            // Find the table element
+            for (int i = domPath.size() - 1; i >= 0; i--) {
+                Map<String, Object> node = domPath.get(i);
+                String nodeTag = (String) node.get("tag");
+                if ("table".equals(nodeTag)) {
+                    String nodeId = (String) node.get("id");
+                    
+                    if (nodeId != null && !nodeId.isEmpty()) {
+                        // Pattern: //table[@id='...']/tbody/tr[@data-user-id='%s']/td[@class='user-name']
+                        if (attributes != null) {
+                            for (String attr : attributes.keySet()) {
+                                if (attr.equals("class")) {
+                                    String className = attributes.get(attr);
+                                    candidates.add(LocatorCandidate.builder()
+                                            .type("xpath")
+                                            .locator(String.format("//table[@id='%s']/tbody/tr[@data-user-id='%%s']/td[@class='%s']", nodeId, className))
+                                            .score(0)
+                                            .reason("Dynamic XPath for table cell by row ID (use String.format with row ID)")
+                                            .build());
+                                    break;
+                                }
+                            }
+                        }
+                        
+                        // Pattern by text content: //table[@id='...']/tbody/tr[td[text()='%s']]/td[position()=%d]
+                        if ("td".equals(tag)) {
+                            int cellIndex = metadata.getNthIndex();
+                            if (cellIndex > 0) {
+                                candidates.add(LocatorCandidate.builder()
+                                        .type("xpath")
+                                        .locator(String.format("//table[@id='%s']/tbody/tr[td[text()='%%s']]/td[%d]", nodeId, cellIndex))
+                                        .score(0)
+                                        .reason("Dynamic XPath for table cell by row text (use String.format with cell text)")
+                                        .build());
+                            }
+                        }
+                    }
+                    break;
+                }
+            }
+        }
+        
+        // Check if element is part of a product list pattern
+        if ("button".equals(tag) && attributes != null && attributes.containsKey("data-product")) {
+            List<Map<String, Object>> domPath = metadata.getDomPath();
+            
+            for (int i = domPath.size() - 1; i >= 0; i--) {
+                Map<String, Object> node = domPath.get(i);
+                String nodeTag = (String) node.get("tag");
+                if ("li".equals(nodeTag)) {
+                    @SuppressWarnings("unchecked")
+                    List<String> nodeClasses = (List<String>) node.get("classes");
+                    if (nodeClasses != null && nodeClasses.contains("product-item")) {
+                        // Pattern: //li[@data-product-id='%s']/button[@class='add-to-cart']
+                        candidates.add(LocatorCandidate.builder()
+                                .type("xpath")
+                                .locator("//li[@data-product-id='%s']/button[@class='add-to-cart']")
+                                .score(0)
+                                .reason("Dynamic XPath for product button by product ID (use String.format with product ID)")
+                                .build());
+                        
+                        // Pattern by product name: //li[h3[text()='%s']]/button[@class='add-to-cart']
+                        candidates.add(LocatorCandidate.builder()
+                                .type("xpath")
+                                .locator("//li[h3[@class='product-name' and text()='%s']]/button[@class='add-to-cart']")
+                                .score(0)
+                                .reason("Dynamic XPath for product button by product name (use String.format with product name)")
+                                .build());
+                        break;
+                    }
+                }
+            }
+        }
+        
+        return candidates;
     }
     
     /**

@@ -251,11 +251,13 @@
         <!-- Navigation -->
         <nav class="section" id="navigation-section">
             <h2>Navigation Menu</h2>
-            <ul class="nav-menu">
-                <li><a href="#home" id="nav-home">Home</a></li>
-                <li><a href="#products" id="nav-products">Products</a></li>
-                <li><a href="#about" id="nav-about">About</a></li>
-                <li><a href="#contact" id="nav-contact">Contact</a></li>
+            <ul class="nav-menu" data-menu="main-nav">
+                <li class="menu-item"><a href="#home" id="nav-home" data-page="home">Home</a></li>
+                <li class="menu-item"><a href="#products" id="nav-products" data-page="products">Products</a></li>
+                <li class="menu-item"><a href="#about" id="nav-about" data-page="about">About</a></li>
+                <li class="menu-item"><a href="#contact" id="nav-contact" data-page="contact">Contact</a></li>
+                <li class="menu-item"><a href="#services" id="nav-services" data-page="services">Services</a></li>
+                <li class="menu-item"><a href="#blog" id="nav-blog" data-page="blog">Blog</a></li>
             </ul>
         </nav>
         
@@ -344,6 +346,26 @@
                             <button class="delete-btn danger" data-action="delete">Delete</button>
                         </td>
                     </tr>
+                    <tr data-user-id="4">
+                        <td class="user-id">4</td>
+                        <td class="user-name">Alice Williams</td>
+                        <td class="user-email">alice@example.com</td>
+                        <td><span class="badge success">Active</span></td>
+                        <td>
+                            <button class="edit-btn" data-action="edit">Edit</button>
+                            <button class="delete-btn danger" data-action="delete">Delete</button>
+                        </td>
+                    </tr>
+                    <tr data-user-id="5">
+                        <td class="user-id">5</td>
+                        <td class="user-name">Charlie Brown</td>
+                        <td class="user-email">charlie@example.com</td>
+                        <td><span class="badge warning">Pending</span></td>
+                        <td>
+                            <button class="edit-btn" data-action="edit">Edit</button>
+                            <button class="delete-btn danger" data-action="delete">Delete</button>
+                        </td>
+                    </tr>
                 </tbody>
             </table>
         </section>
@@ -369,6 +391,18 @@
                     <p class="product-description">RGB backlit mechanical keyboard</p>
                     <span class="price">$89.99</span>
                     <button class="add-to-cart" data-product="103">Add to Cart</button>
+                </li>
+                <li class="product-item" data-product-id="104">
+                    <h3 class="product-name">USB-C Hub</h3>
+                    <p class="product-description">7-in-1 USB-C hub with HDMI and SD card reader</p>
+                    <span class="price">$49.99</span>
+                    <button class="add-to-cart" data-product="104">Add to Cart</button>
+                </li>
+                <li class="product-item" data-product-id="105">
+                    <h3 class="product-name">Webcam HD Pro</h3>
+                    <p class="product-description">1080p HD webcam with autofocus</p>
+                    <span class="price">$79.99</span>
+                    <button class="add-to-cart" data-product="105">Add to Cart</button>
                 </li>
             </ul>
         </section>
