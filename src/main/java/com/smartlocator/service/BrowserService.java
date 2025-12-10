@@ -450,6 +450,11 @@ public class BrowserService {
                 return -1; // Special value to indicate "not countable"
             }
             
+            // Skip counting for dynamic XPath patterns (they contain %s placeholders)
+            if (locator.contains("%s")) {
+                return -2; // Special value to indicate "dynamic pattern"
+            }
+            
             // Try to count elements using the locator
             Locator elementLocator = page.locator(locator);
             return elementLocator.count();

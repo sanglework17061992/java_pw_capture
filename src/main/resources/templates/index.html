@@ -206,11 +206,15 @@
                 const countInfo = await countElements(locator);
                 const count = countInfo.count;
                 
-                // Handle Playwright API methods that can't be counted (-1)
+                // Handle special count values
                 let countBadge = '';
                 let countClass = '';
                 if (count === -1) {
+                    // Playwright API methods that can't be counted
                     countBadge = '<span class="locator-count count-api">API Method</span>';
+                } else if (count === -2) {
+                    // Dynamic XPath patterns with %s placeholder
+                    countBadge = '<span class="locator-count count-dynamic">Dynamic Pattern</span>';
                 } else {
                     countClass = count === 1 ? 'count-unique' : count > 1 ? 'count-multiple' : 'count-none';
                     countBadge = `<span class="locator-count ${countClass}">${count} match${count !== 1 ? 'es' : ''}</span>`;

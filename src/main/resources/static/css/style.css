@@ -334,6 +334,11 @@ body {
     color: #0c5460;
 }
 
+.count-dynamic {
+    background: #e7e3ff;
+    color: #5a47b8;
+}
+
 .locator-value {
     font-family: 'Courier New', monospace;
     background: white;
