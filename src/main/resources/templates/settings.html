@@ -85,6 +85,23 @@
         </div>
 
         <div class="section">
+            <h2>Performance Settings</h2>
+            
+            <div class="alert alert-info">
+                <strong>ℹ️ Info:</strong> Adjust these settings to balance between responsiveness and system performance.
+            </div>
+
+            <div class="form-group">
+                <label for="pollingInterval">Element Selection Polling Interval: <span id="pollingValue">2000</span>ms</label>
+                <input type="range" id="pollingInterval" min="500" max="5000" step="500" value="2000">
+                <p style="color: #666; font-size: 0.9rem;">
+                    How often to check if user selected an element in the browser. Lower = more responsive, Higher = better performance.
+                    <br><strong>Recommended:</strong> 2000ms (2 seconds)
+                </p>
+            </div>
+        </div>
+
+        <div class="section">
             <h2>About</h2>
             
             <div style="background: #f8f9fa; padding: 1.5rem; border-radius: 5px;">
@@ -108,5 +125,30 @@
     </div>
 
     <script th:replace="~{fragments :: commonScripts}"></script>
+    <script>
+        // Load polling interval setting
+        const pollingIntervalInput = document.getElementById('pollingInterval');
+        const pollingValueDisplay = document.getElementById('pollingValue');
+        
+        // Load saved value or use default
+        const savedPollingInterval = localStorage.getItem('pollingInterval') || '2000';
+        pollingIntervalInput.value = savedPollingInterval;
+        pollingValueDisplay.textContent = savedPollingInterval;
+        
+        // Update display and save on change
+        pollingIntervalInput.addEventListener('input', function() {
+            const value = this.value;
+            pollingValueDisplay.textContent = value;
+            localStorage.setItem('pollingInterval', value);
+            
+            // Show feedback
+            const feedback = document.createElement('div');
+            feedback.style.cssText = 'position: fixed; top: 20px; right: 20px; background: #10b981; color: white; padding: 1rem; border-radius: 5px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); z-index: 9999;';
+            feedback.textContent = `Polling interval updated to ${value}ms. Refresh the main page to apply changes.`;
+            document.body.appendChild(feedback);
+            
+            setTimeout(() => feedback.remove(), 3000);
+        });
+    </script>
 </body>
 </html>

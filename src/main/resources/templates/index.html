@@ -74,7 +74,9 @@
 
         function startPolling() {
             if (pollingInterval) return;
-            pollingInterval = setInterval(pollForSelection, 500);
+            // Read polling interval from settings (default 2000ms if not set)
+            const interval = parseInt(localStorage.getItem('pollingInterval') || '2000');
+            pollingInterval = setInterval(pollForSelection, interval);
         }
 
         function stopPolling() {
