@@ -205,12 +205,41 @@ public class BrowserService {
                     "  var path = [];" +
                     "  var current = el;" +
                     "  while (current && current.tagName) {" +
+                    "    var siblings = [];" +
+                    "    if (current.parentElement) {" +
+                    "      var parentChildren = Array.from(current.parentElement.children);" +
+                    "      parentChildren.forEach(function(sibling, idx) {" +
+                    "        if (sibling !== current && siblings.length < 3) {" +
+                    "          siblings.push({" +
+                    "            tag: sibling.tagName.toLowerCase()," +
+                    "            id: sibling.id || null," +
+                    "            classes: Array.from(sibling.classList).slice(0, 2)," +
+                    "            index: idx" +
+                    "          });" +
+                    "        }" +
+                    "      });" +
+                    "    }" +
+                    "    " +
+                    "    var children = [];" +
+                    "    if (current === el && current.children.length > 0 && current.children.length <= 5) {" +
+                    "      Array.from(current.children).forEach(function(child, idx) {" +
+                    "        children.push({" +
+                    "          tag: child.tagName.toLowerCase()," +
+                    "          id: child.id || null," +
+                    "          classes: Array.from(child.classList).slice(0, 2)," +
+                    "          index: idx" +
+                    "        });" +
+                    "      });" +
+                    "    }" +
+                    "    " +
                     "    var nodeInfo = {" +
                     "      tag: current.tagName.toLowerCase()," +
                     "      id: current.id || null," +
                     "      classes: Array.from(current.classList)," +
                     "      text: (current.childNodes.length === 1 && current.childNodes[0].nodeType === 3) ? current.textContent.trim() : null," +
-                    "      isCurrent: (current === el)" +
+                    "      isCurrent: (current === el)," +
+                    "      siblings: siblings," +
+                    "      children: children" +
                     "    };" +
                     "    path.unshift(nodeInfo);" +
                     "    if (current.tagName.toLowerCase() === 'body') break;" +

@@ -507,6 +507,30 @@ body {
     font-weight: 700;
 }
 
+.dom-sibling {
+    background: rgba(147, 197, 253, 0.15);
+    border-left: 2px solid #93c5fd;
+    padding: 0.4rem 0.6rem;
+    margin: 0.2rem 0;
+    font-size: 0.85rem;
+}
+
+.dom-sibling:hover {
+    background: rgba(147, 197, 253, 0.25);
+}
+
+.dom-child {
+    background: rgba(134, 239, 172, 0.15);
+    border-left: 2px solid #86efac;
+    padding: 0.4rem 0.6rem;
+    margin: 0.2rem 0;
+    font-size: 0.85rem;
+}
+
+.dom-child:hover {
+    background: rgba(134, 239, 172, 0.25);
+}
+
 /* Alert Styles */
 .alert {
     padding: 1rem;

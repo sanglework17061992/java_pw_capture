@@ -356,6 +356,48 @@
                     html += `<span class="dom-value">"${escapeHtml(displayText)}"</span>`;
                     html += '</div>';
                 }
+                
+                // Add siblings if this is the current element's parent or current itself
+                if (node.siblings && node.siblings.length > 0 && (isCurrent || (i === metadata.domPath.length - 2))) {
+                    html += '<div class="dom-siblings" style="margin-left: 20px; margin-top: 5px;">';
+                    html += '<div style="font-size: 11px; color: #999; margin-bottom: 3px;">Siblings:</div>';
+                    node.siblings.forEach(sibling => {
+                        let sibSelector = sibling.tag;
+                        if (sibling.id) sibSelector = `#${sibling.id}`;
+                        else if (sibling.classes && sibling.classes.length > 0) sibSelector = `${sibling.tag}.${sibling.classes[0]}`;
+                        
+                        html += `<div class="dom-node dom-sibling" onclick="highlightDomNode('${sibSelector.replace(/'/g, "\\'")}')">`;
+                        html += `<span class="dom-tag">&lt;${sibling.tag}`;
+                        if (sibling.id) {
+                            html += ` <span class="dom-attr">id</span>=<span class="dom-value">"${sibling.id}"</span>`;
+                        } else if (sibling.classes && sibling.classes.length > 0) {
+                            html += ` <span class="dom-attr">class</span>=<span class="dom-value">"${sibling.classes.join(' ')}"</span>`;
+                        }
+                        html += '&gt;</span></div>';
+                    });
+                    html += '</div>';
+                }
+                
+                // Add children if this is the current element
+                if (isCurrent && node.children && node.children.length > 0) {
+                    html += '<div class="dom-children" style="margin-left: 20px; margin-top: 5px;">';
+                    html += '<div style="font-size: 11px; color: #999; margin-bottom: 3px;">Children:</div>';
+                    node.children.forEach(child => {
+                        let childSelector = child.tag;
+                        if (child.id) childSelector = `#${child.id}`;
+                        else if (child.classes && child.classes.length > 0) childSelector = `${child.tag}.${child.classes[0]}`;
+                        
+                        html += `<div class="dom-node dom-child" onclick="highlightDomNode('${childSelector.replace(/'/g, "\\'")}')">`;
+                        html += `<span class="dom-tag">&lt;${child.tag}`;
+                        if (child.id) {
+                            html += ` <span class="dom-attr">id</span>=<span class="dom-value">"${child.id}"</span>`;
+                        } else if (child.classes && child.classes.length > 0) {
+                            html += ` <span class="dom-attr">class</span>=<span class="dom-value">"${child.classes.join(' ')}"</span>`;
+                        }
+                        html += '&gt;</span></div>';
+                    });
+                    html += '</div>';
+                }
             }
             
             // Close all indent divs
