@@ -63,16 +63,17 @@ public class BrowserService {
                 // Maximize window
                 driver.manage().window().maximize();
                 
-                // Set implicit wait
-                driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(10));
+                // Set page load timeout only (no implicit wait for faster operations)
+                driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(30));
+                driver.manage().timeouts().scriptTimeout(Duration.ofSeconds(30));
             }
 
             // Navigate to URL
             driver.get(url);
             log.info("Navigated to: {}", url);
 
-            // Wait for page to load
-            new WebDriverWait(driver, Duration.ofSeconds(10))
+            // Quick page ready check (reduced to 2 seconds)
+            new WebDriverWait(driver, Duration.ofSeconds(2))
                     .until(webDriver -> ((JavascriptExecutor) webDriver)
                             .executeScript("return document.readyState").equals("complete"));
 
