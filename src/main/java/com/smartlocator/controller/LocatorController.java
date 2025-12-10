@@ -314,6 +314,9 @@ public class LocatorController {
                 return ResponseEntity.ok(error);
             }
 
+            // Ensure script is injected (handles navigation)
+            browserService.ensureScriptActive();
+
             if (!browserService.hasSelectedElement()) {
                 Map<String, Object> response = new HashMap<>();
                 response.put("hasSelection", false);

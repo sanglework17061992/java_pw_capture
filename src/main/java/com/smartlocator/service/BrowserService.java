@@ -736,7 +736,7 @@ public class BrowserService {
 
         try {
             // Ensure script is injected (handles navigation)
-            ensureScriptInjected();
+            ensureScriptActive();
             
             JavascriptExecutor js = (JavascriptExecutor) driver;
             
@@ -780,7 +780,7 @@ public class BrowserService {
         }
     }
     
-    private void ensureScriptInjected() {
+    public void ensureScriptActive() {
         if (driver == null) {
             return;
         }
