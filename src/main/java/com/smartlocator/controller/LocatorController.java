@@ -201,6 +201,36 @@ public class LocatorController {
     }
 
     /**
+     * Highlight a DOM element by selector
+     */
+    @PostMapping("/highlight-element")
+    public ResponseEntity<Map<String, Object>> highlightElement(@RequestBody Map<String, String> request) {
+        try {
+            String selector = request.get("selector");
+            if (selector == null || selector.isEmpty()) {
+                Map<String, Object> error = new HashMap<>();
+                error.put("success", false);
+                error.put("error", "Selector is required");
+                return ResponseEntity.badRequest().body(error);
+            }
+            
+            browserService.highlightElement(selector);
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("success", true);
+            response.put("message", "Element highlighted");
+            
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            log.error("Error highlighting element", e);
+            Map<String, Object> error = new HashMap<>();
+            error.put("success", false);
+            error.put("error", e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(error);
+        }
+    }
+
+    /**
      * Take screenshot
      */
     @GetMapping("/screenshot")

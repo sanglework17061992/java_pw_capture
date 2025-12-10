@@ -16,7 +16,7 @@
                     <option value="firefox">Firefox</option>
                     <option value="webkit">WebKit</option>
                 </select>
-                <button class="btn btn-primary" onclick="openUrl()">Open</button>
+                <button class="btn btn-open" onclick="openUrl()">Open</button>
                 <button class="btn btn-secondary" onclick="closeBrowser()">Close</button>
             </div>
         </div>
@@ -314,8 +314,16 @@
                 
                 // Build node display
                 const nodeClass = isCurrent ? 'dom-current' : 'dom-parent';
-                html += `<div class="dom-node ${nodeClass}">`;
                 
+                // Build CSS selector for this node
+                let selector = node.tag;
+                if (node.id) {
+                    selector = `#${node.id}`;
+                } else if (node.classes && node.classes.length > 0) {
+                    selector = `${node.tag}.${node.classes[0]}`;
+                }
+                
+                html += `<div class="dom-node ${nodeClass}" onclick="highlightDomNode('${selector.replace(/'/g, "\\'")}')">`;                
                 // Tag name
                 html += `<span class="dom-tag">&lt;${node.tag}`;
                 
@@ -359,6 +367,25 @@
             html += '</div>'; // close container
             
             return html;
+        }
+        
+        async function highlightDomNode(selector) {
+            try {
+                const response = await fetch(API_BASE + '/api/highlight-element', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ selector: selector })
+                });
+                
+                const data = await response.json();
+                if (!data.success) {
+                    console.error('Error highlighting element:', data.error);
+                }
+            } catch (error) {
+                console.error('Error highlighting element:', error);
+            }
         }
     </script>
 </body>
