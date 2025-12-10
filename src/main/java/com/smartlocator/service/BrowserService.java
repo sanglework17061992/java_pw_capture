@@ -374,25 +374,40 @@ public class BrowserService {
             "  }" +
             "});" +
             "" +
+            "var rafId = null;" +
             "document.addEventListener('mouseover', function(e) {" +
             "  if (!captureMode) return;" +
             "  e.stopPropagation();" +
             "  window.__hoveredElement = e.target;" +
             "  " +
-            "  var rect = e.target.getBoundingClientRect();" +
-            "  highlightBox.style.top = (rect.top + window.scrollY) + 'px';" +
-            "  highlightBox.style.left = (rect.left + window.scrollX) + 'px';" +
-            "  highlightBox.style.width = rect.width + 'px';" +
-            "  highlightBox.style.height = rect.height + 'px';" +
-            "  highlightBox.style.display = 'block';" +
-            "  " +
-            "  var tagName = e.target.tagName.toLowerCase();" +
-            "  var idInfo = e.target.id ? '#' + e.target.id : '';" +
-            "  var classInfo = e.target.className ? '.' + e.target.className.split(' ').join('.') : '';" +
-            "  tooltip.textContent = tagName + idInfo + classInfo;" +
-            "  tooltip.style.top = (rect.bottom + window.scrollY + 5) + 'px';" +
-            "  tooltip.style.left = (rect.left + window.scrollX) + 'px';" +
-            "  tooltip.style.display = 'block';" +
+            "  if (rafId) return;" +
+            "  rafId = requestAnimationFrame(function() {" +
+            "    rafId = null;" +
+            "    var target = window.__hoveredElement;" +
+            "    if (!target) return;" +
+            "    " +
+            "    var rect = target.getBoundingClientRect();" +
+            "    highlightBox.style.cssText = " +
+            "      'position: absolute;' +" +
+            "      'border: 2px solid #667eea;' +" +
+            "      'background: rgba(102, 126, 234, 0.1);' +" +
+            "      'pointer-events: none;' +" +
+            "      'z-index: 999999;' +" +
+            "      'box-shadow: 0 0 10px rgba(102, 126, 234, 0.5);' +" +
+            "      'display: block;' +" +
+            "      'top: ' + (rect.top + window.scrollY) + 'px;' +" +
+            "      'left: ' + (rect.left + window.scrollX) + 'px;' +" +
+            "      'width: ' + rect.width + 'px;' +" +
+            "      'height: ' + rect.height + 'px;';" +
+            "    " +
+            "    var tagName = target.tagName.toLowerCase();" +
+            "    var idInfo = target.id ? '#' + target.id : '';" +
+            "    var classInfo = target.className ? '.' + target.className.split(' ').join('.') : '';" +
+            "    tooltip.textContent = tagName + idInfo + classInfo;" +
+            "    tooltip.style.top = (rect.bottom + window.scrollY + 5) + 'px';" +
+            "    tooltip.style.left = (rect.left + window.scrollX) + 'px';" +
+            "    tooltip.style.display = 'block';" +
+            "  });" +
             "});" +
             "" +
             "document.addEventListener('mouseout', function(e) {" +
