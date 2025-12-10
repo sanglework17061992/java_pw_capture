@@ -32,10 +32,29 @@ mvn clean package
 
 ## Running the Application
 
+### Option 1: Run with Maven (Recommended for Development)
+
+```bash
+mvn spring-boot:run
+```
+
+### Option 2: Run from JAR File
+
+First, install Playwright browsers:
+
+```bash
+# Install browsers for Playwright
+mvn exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D exec.args="install"
+```
+
+Then run the JAR:
+
 ```bash
 # Run the JAR file
 java -jar target/smart-locator.jar
 ```
+
+**Note**: If you encounter Playwright initialization errors when running from JAR, use Option 1 (Maven) or ensure Playwright browsers are properly installed.
 
 The application will start on `http://localhost:8080`
 

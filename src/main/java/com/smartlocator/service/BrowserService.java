@@ -6,7 +6,6 @@ import com.smartlocator.model.ElementMetadata;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
-import jakarta.annotation.PostConstruct;
 import jakarta.annotation.PreDestroy;
 import java.util.*;
 
@@ -21,12 +20,6 @@ public class BrowserService {
     private String currentBrowserType = "chromium";
     private final ObjectMapper objectMapper = new ObjectMapper();
 
-    @PostConstruct
-    public void init() {
-        log.info("Initializing Playwright...");
-        playwright = Playwright.create();
-    }
-
     @PreDestroy
     public void cleanup() {
         log.info("Cleaning up Playwright resources...");
@@ -36,8 +29,24 @@ public class BrowserService {
         }
     }
 
+    private void ensurePlaywrightInitialized() {
+        if (playwright == null) {
+            log.info("Initializing Playwright (lazy initialization)...");
+            try {
+                playwright = Playwright.create();
+                log.info("Playwright initialized successfully");
+            } catch (Exception e) {
+                log.error("Failed to initialize Playwright. Make sure Playwright browsers are installed.", e);
+                throw new RuntimeException("Failed to initialize Playwright. Please run 'mvn exec:java -e -D exec.mainClass=com.microsoft.playwright.CLI -D exec.args=\"install\"' to install browsers.", e);
+            }
+        }
+    }
+
     public void openUrl(String url, String browserType) {
         try {
+            // Ensure Playwright is initialized
+            ensurePlaywrightInitialized();
+            
             // Close existing browser if different type requested
             if (browser != null && !currentBrowserType.equals(browserType)) {
                 closeBrowser();
