@@ -326,10 +326,32 @@ public class BrowserService {
 
     private void injectHighlighterScript() {
         JavascriptExecutor js = (JavascriptExecutor) driver;
+        
+        // Check if script is already injected and elements exist
+        try {
+            Boolean isInjected = (Boolean) js.executeScript(
+                "return window.__smartLocatorInjected === true && " +
+                "document.getElementById('__smart-locator-banner') !== null;"
+            );
+            if (Boolean.TRUE.equals(isInjected)) {
+                log.debug("Highlighter script already injected and active");
+                return;
+            }
+        } catch (Exception e) {
+            // Script not injected yet, continue
+        }
+        
+        log.info("Injecting highlighter script");
         String script = 
-            "if (window.__smartLocatorInjected) return;" +
             "window.__smartLocatorInjected = true;" +
             "window.__hoveredElement = null;" +
+            "" +
+            "var existingBanner = document.getElementById('__smart-locator-banner');" +
+            "if (existingBanner) existingBanner.remove();" +
+            "var existingHighlight = document.getElementById('__smart-locator-highlight');" +
+            "if (existingHighlight) existingHighlight.remove();" +
+            "var existingTooltip = document.getElementById('__smart-locator-tooltip');" +
+            "if (existingTooltip) existingTooltip.remove();" +
             "" +
             "var highlightBox = document.createElement('div');" +
             "highlightBox.id = '__smart-locator-highlight';" +
@@ -713,6 +735,9 @@ public class BrowserService {
         }
 
         try {
+            // Ensure script is injected (handles navigation)
+            ensureScriptInjected();
+            
             JavascriptExecutor js = (JavascriptExecutor) driver;
             
             // Check if an element was selected
@@ -752,6 +777,34 @@ public class BrowserService {
             return Boolean.TRUE.equals(selected);
         } catch (Exception e) {
             return false;
+        }
+    }
+    
+    private void ensureScriptInjected() {
+        if (driver == null) {
+            return;
+        }
+        
+        try {
+            JavascriptExecutor js = (JavascriptExecutor) driver;
+            // Check if script elements still exist in DOM
+            Boolean isActive = (Boolean) js.executeScript(
+                "return window.__smartLocatorInjected === true && " +
+                "document.getElementById('__smart-locator-banner') !== null;"
+            );
+            
+            if (!Boolean.TRUE.equals(isActive)) {
+                log.info("Script not active, re-injecting after navigation");
+                injectHighlighterScript();
+            }
+        } catch (Exception e) {
+            log.warn("Error checking script injection: {}", e.getMessage());
+            // Try to inject anyway
+            try {
+                injectHighlighterScript();
+            } catch (Exception ex) {
+                log.error("Failed to inject script: {}", ex.getMessage());
+            }
         }
     }
 }
