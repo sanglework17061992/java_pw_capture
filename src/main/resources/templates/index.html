@@ -16,7 +16,7 @@
                     <option value="firefox">Firefox</option>
                     <option value="webkit">WebKit</option>
                 </select>
-                <button class="btn btn-primary" onclick="openUrl()">Open</button>
+                <button class="btn btn-open" onclick="openUrl()">Open</button>
                 <button class="btn btn-secondary" onclick="closeBrowser()">Close</button>
             </div>
         </div>
@@ -314,8 +314,16 @@
                 
                 // Build node display
                 const nodeClass = isCurrent ? 'dom-current' : 'dom-parent';
-                html += `<div class="dom-node ${nodeClass}">`;
                 
+                // Build CSS selector for this node
+                let selector = node.tag;
+                if (node.id) {
+                    selector = `#${node.id}`;
+                } else if (node.classes && node.classes.length > 0) {
+                    selector = `${node.tag}.${node.classes[0]}`;
+                }
+                
+                html += `<div class="dom-node ${nodeClass}" onclick="highlightDomNode('${selector.replace(/'/g, "\\'")}')">`;                
                 // Tag name
                 html += `<span class="dom-tag">&lt;${node.tag}`;
                 
@@ -359,6 +367,47 @@
             html += '</div>'; // close container
             
             return html;
+        }
+        
+        async function highlightDomNode(selector) {
+            try {
+                // First highlight the element
+                const highlightResponse = await fetch(API_BASE + '/api/highlight-element', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ selector: selector })
+                });
+                
+                const highlightData = await highlightResponse.json();
+                if (!highlightData.success) {
+                    console.error('Error highlighting element:', highlightData.error);
+                    showAlert('Error highlighting element: ' + highlightData.error, 'error');
+                    return;
+                }
+                
+                // Then capture and generate locators for this element
+                const captureResponse = await fetch(API_BASE + '/api/capture-by-selector', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ selector: selector })
+                });
+                
+                const captureData = await captureResponse.json();
+                if (captureData.success && captureData.result) {
+                    showAlert('Element captured! Generating locators...', 'success');
+                    displayResult(captureData.result);
+                } else {
+                    console.error('Error capturing element:', captureData.error);
+                    showAlert('Error capturing element: ' + captureData.error, 'error');
+                }
+            } catch (error) {
+                console.error('Error in highlightDomNode:', error);
+                showAlert('Error: ' + error.message, 'error');
+            }
         }
     </script>
 </body>

@@ -431,6 +431,72 @@ public class BrowserService {
         }
     }
 
+    public void highlightElement(String selector) {
+        if (page == null) {
+            throw new IllegalStateException("Browser is not open");
+        }
+        
+        try {
+            // JavaScript to highlight the element
+            String script = """
+                (selector) => {
+                    // Remove any existing highlights
+                    document.querySelectorAll('.copilot-highlight-temp').forEach(el => {
+                        el.classList.remove('copilot-highlight-temp');
+                        el.style.outline = '';
+                        el.style.outlineOffset = '';
+                    });
+                    
+                    // Find and highlight the new element
+                    const element = document.querySelector(selector);
+                    if (element) {
+                        element.classList.add('copilot-highlight-temp');
+                        element.style.outline = '3px solid #ff6b6b';
+                        element.style.outlineOffset = '2px';
+                        element.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                        
+                        // Remove highlight after 3 seconds
+                        setTimeout(() => {
+                            element.classList.remove('copilot-highlight-temp');
+                            element.style.outline = '';
+                            element.style.outlineOffset = '';
+                        }, 3000);
+                    }
+                }
+                """;
+            page.evaluate(script, selector);
+        } catch (Exception e) {
+            log.error("Error highlighting element with selector: {}", selector, e);
+            throw new RuntimeException("Failed to highlight element: " + e.getMessage());
+        }
+    }
+
+    public ElementMetadata captureElementBySelector(String selector) {
+        if (page == null) {
+            throw new IllegalStateException("Browser is not open");
+        }
+        
+        try {
+            // First, find the element using the selector
+            Locator locator = page.locator(selector).first();
+            int count = locator.count();
+            
+            if (count == 0) {
+                throw new IllegalStateException("Element not found with selector: " + selector);
+            }
+            
+            // Get the element handle
+            ElementHandle elementHandle = locator.elementHandle();
+            
+            // Use existing extractMetadata method
+            return extractMetadata(elementHandle);
+            
+        } catch (Exception e) {
+            log.error("Error capturing element by selector: {}", selector, e);
+            throw new IllegalStateException("Failed to capture element: " + e.getMessage());
+        }
+    }
+
     public boolean isBrowserOpen() {
         return browser != null && page != null;
     }
