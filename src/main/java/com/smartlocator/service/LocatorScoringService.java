@@ -64,19 +64,25 @@ public class LocatorScoringService {
             .filter(c -> c.getType().equals("xpath"))
             .sorted((a, b) -> Double.compare(b.getScore(), a.getScore()))
             .forEach(c -> {
-                // Only add if we haven't seen this exact locator string before
-                if (!uniqueXPath.containsKey(c.getLocator())) {
-                    uniqueXPath.put(c.getLocator(), c);
+                // For dynamic patterns (containing %s), use locator + reason as key to preserve all variations
+                // For regular XPath, use just the locator to deduplicate identical XPaths
+                String key = c.getLocator().contains("%s") 
+                    ? c.getLocator() + "|" + c.getReason() 
+                    : c.getLocator();
+                    
+                // Only add if we haven't seen this exact key before
+                if (!uniqueXPath.containsKey(key)) {
+                    uniqueXPath.put(key, c);
                 }
             });
         
         List<LocatorCandidate> xpathCandidates = new ArrayList<>(uniqueXPath.values());
         
-        // If only one unique XPath, show as XPATH; otherwise show top 3 as XPATH_1, XPATH_2, XPATH_3
+        // If only one unique XPath, show as XPATH; otherwise show all as XPATH_1, XPATH_2, etc.
         if (xpathCandidates.size() == 1) {
             candidatesMap.put("XPATH", xpathCandidates.get(0).getLocator());
         } else {
-            for (int i = 0; i < Math.min(xpathCandidates.size(), 3); i++) {
+            for (int i = 0; i < xpathCandidates.size(); i++) {
                 candidatesMap.put("XPATH_" + (i + 1), xpathCandidates.get(i).getLocator());
             }
         }
