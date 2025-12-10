@@ -420,48 +420,102 @@ public class LocatorGenerationService {
             }
         }
         
-        // Check if element is in a table row
-        if (metadata.getParentTagName() != null && "tr".equals(metadata.getParentTagName())) {
+        // Check if element is in a table row or is a table button
+        if (metadata.getParentTagName() != null && ("tr".equals(metadata.getParentTagName()) || "td".equals(metadata.getParentTagName()))) {
             List<Map<String, Object>> domPath = metadata.getDomPath();
             
-            // Find the table element
+            // Find the table element and tr element
+            String tableId = null;
+            boolean isInTable = false;
+            
             for (int i = domPath.size() - 1; i >= 0; i--) {
                 Map<String, Object> node = domPath.get(i);
                 String nodeTag = (String) node.get("tag");
                 if ("table".equals(nodeTag)) {
-                    String nodeId = (String) node.get("id");
-                    
-                    if (nodeId != null && !nodeId.isEmpty()) {
-                        // Pattern: //table[@id='...']/tbody/tr[@data-user-id='%s']/td[@class='user-name']
-                        if (attributes != null) {
-                            for (String attr : attributes.keySet()) {
-                                if (attr.equals("class")) {
-                                    String className = attributes.get(attr);
-                                    candidates.add(LocatorCandidate.builder()
-                                            .type("xpath")
-                                            .locator(String.format("//table[@id='%s']/tbody/tr[@data-user-id='%%s']/td[@class='%s']", nodeId, className))
-                                            .score(0)
-                                            .reason("Dynamic XPath for table cell by row ID (use String.format with row ID)")
-                                            .build());
-                                    break;
-                                }
-                            }
-                        }
-                        
-                        // Pattern by text content: //table[@id='...']/tbody/tr[td[text()='%s']]/td[position()=%d]
-                        if ("td".equals(tag)) {
-                            int cellIndex = metadata.getNthIndex();
-                            if (cellIndex > 0) {
-                                candidates.add(LocatorCandidate.builder()
-                                        .type("xpath")
-                                        .locator(String.format("//table[@id='%s']/tbody/tr[td[text()='%%s']]/td[%d]", nodeId, cellIndex))
-                                        .score(0)
-                                        .reason("Dynamic XPath for table cell by row text (use String.format with cell text)")
-                                        .build());
-                            }
-                        }
-                    }
+                    tableId = (String) node.get("id");
+                    isInTable = true;
                     break;
+                }
+            }
+            
+            if (isInTable && tableId != null && !tableId.isEmpty()) {
+                // Check if this is an action button (Edit/Delete) inside a td
+                if ("button".equals(tag) && attributes != null) {
+                    String buttonClass = attributes.get("class");
+                    String dataAction = attributes.get("data-action");
+                    
+                    // Generate dynamic XPath for action buttons using other column values
+                    if (buttonClass != null && (buttonClass.contains("edit") || buttonClass.contains("delete"))) {
+                        // Pattern 1: By user ID - //table[@id='...']/tbody/tr[@data-user-id='%s']//button[@data-action='edit']
+                        candidates.add(LocatorCandidate.builder()
+                                .type("xpath")
+                                .locator(String.format("//table[@id='%s']/tbody/tr[@data-user-id='%%s']//button[@data-action='%s']", 
+                                        tableId, dataAction != null ? dataAction : (buttonClass.contains("edit") ? "edit" : "delete")))
+                                .score(0)
+                                .reason("Dynamic XPath for table action button by row ID (use String.format with row ID)")
+                                .build());
+                        
+                        // Pattern 2: By name column - //table[@id='...']/tbody/tr[td[@class='user-name' and text()='%s']]//button[@class='edit-btn']
+                        candidates.add(LocatorCandidate.builder()
+                                .type("xpath")
+                                .locator(String.format("//table[@id='%s']/tbody/tr[td[contains(@class, 'user-name') and text()='%%s']]//button[contains(@class, '%s')]", 
+                                        tableId, buttonClass.contains("edit") ? "edit" : "delete"))
+                                .score(0)
+                                .reason("Dynamic XPath for table action button by name column (use String.format with user name)")
+                                .build());
+                        
+                        // Pattern 3: By email column - //table[@id='...']/tbody/tr[td[@class='user-email' and text()='%s']]//button[@class='edit-btn']
+                        candidates.add(LocatorCandidate.builder()
+                                .type("xpath")
+                                .locator(String.format("//table[@id='%s']/tbody/tr[td[contains(@class, 'user-email') and text()='%%s']]//button[contains(@class, '%s')]", 
+                                        tableId, buttonClass.contains("edit") ? "edit" : "delete"))
+                                .score(0)
+                                .reason("Dynamic XPath for table action button by email column (use String.format with user email)")
+                                .build());
+                        
+                        // Pattern 4: By any cell value (generic) - //table[@id='...']/tbody/tr[td[text()='%s']]//button[@class='edit-btn']
+                        candidates.add(LocatorCandidate.builder()
+                                .type("xpath")
+                                .locator(String.format("//table[@id='%s']/tbody/tr[td[text()='%%s']]//button[contains(@class, '%s')]", 
+                                        tableId, buttonClass.contains("edit") ? "edit" : "delete"))
+                                .score(0)
+                                .reason("Dynamic XPath for table action button by any cell text (use String.format with any cell value)")
+                                .build());
+                        
+                        // Pattern 5: By position - //table[@id='...']/tbody/tr[position()=%s]//button[@class='edit-btn']
+                        candidates.add(LocatorCandidate.builder()
+                                .type("xpath")
+                                .locator(String.format("//table[@id='%s']/tbody/tr[%%s]//button[contains(@class, '%s')]", 
+                                        tableId, buttonClass.contains("edit") ? "edit" : "delete"))
+                                .score(0)
+                                .reason("Dynamic XPath for table action button by row position (use String.format with row number)")
+                                .build());
+                    }
+                }
+                
+                // Pattern for regular table cells
+                if ("td".equals(tag)) {
+                    // Pattern: //table[@id='...']/tbody/tr[@data-user-id='%s']/td[@class='user-name']
+                    if (attributes != null && attributes.containsKey("class")) {
+                        String className = attributes.get("class");
+                        candidates.add(LocatorCandidate.builder()
+                                .type("xpath")
+                                .locator(String.format("//table[@id='%s']/tbody/tr[@data-user-id='%%s']/td[@class='%s']", tableId, className))
+                                .score(0)
+                                .reason("Dynamic XPath for table cell by row ID (use String.format with row ID)")
+                                .build());
+                    }
+                    
+                    // Pattern by text content: //table[@id='...']/tbody/tr[td[text()='%s']]/td[position()=%d]
+                    int cellIndex = metadata.getNthIndex();
+                    if (cellIndex > 0) {
+                        candidates.add(LocatorCandidate.builder()
+                                .type("xpath")
+                                .locator(String.format("//table[@id='%s']/tbody/tr[td[text()='%%s']]/td[%d]", tableId, cellIndex))
+                                .score(0)
+                                .reason("Dynamic XPath for table cell by row text (use String.format with cell text)")
+                                .build());
+                    }
                 }
             }
         }
